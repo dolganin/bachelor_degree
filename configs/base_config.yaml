@@ -1,0 +1,46 @@
+learning_parameters:
+  learning_rate: 0.00025
+  discount_factor: 0.99
+  train_epochs: 5
+  replay_memory_size: 10000
+  batch_size: 64
+  test_episodes_per_epoch: 100
+  frame_repeat: 12
+  learning_steps_per_epoch: 1000
+
+env_parameters:
+  resolution: (30, 45)
+  episodes_to_watch: 10
+
+meta_parameters:
+  out_model_file: "model-doom.pth"
+  save_model: True
+  load_model: False
+  skip_learning: False
+
+doom_parameters:
+  doom_scenario_path: basic.wad
+  doom_map: map01
+  living_reward: -1
+  screen_resolution: RES_320X240
+  screen_format: CRCGCB
+  render_hud: true
+  render_crosshair: false
+  render_weapon: true
+  render_decals: false
+  render_particles: false
+  window_visible: true
+  episode_start_time: 14
+  episode_timeout: 300
+  available_buttons:
+	{
+		MOVE_LEFT,
+		MOVE_RIGHT,
+		ATTACK
+	}
+  available_game_variables: { AMMO2 }
+  mode: PLAYER
+  doom_skill: 5
+
+
+  
