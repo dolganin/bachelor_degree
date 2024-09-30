@@ -4,7 +4,10 @@ import torch.optim as optim
 from duel_qagent import DuelQNet
 import numpy as np
 from collections import deque
+from yaml_reader import YAMLParser
+import numpy.random as random
 
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 class DQNAgent:
     def __init__(
@@ -28,11 +31,13 @@ class DQNAgent:
         self.lr = lr
         self.memory = deque(maxlen=memory_size)
         self.criterion = nn.MSELoss()
+        self.config = YAMLParser.parse_config().config
+        self.model_savefile = self.config["meta_parameters"]["out_model_file"]
 
         if load_model:
-            print("Loading model from: ", model_savefile)
-            self.q_net = torch.load(model_savefile)
-            self.target_net = torch.load(model_savefile)
+            print("Loading model from: ", self.model_savefile)
+            self.q_net = torch.load(self.model_savefile)
+            self.target_net = torch.load(self.model_savefile)
             self.epsilon = self.epsilon_min
 
         else:
