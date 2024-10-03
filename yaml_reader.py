@@ -1,4 +1,6 @@
 import yaml
+import argparse
+
 
 class YAMLParser():
     def __init__(self, path_base: str ="configs/", config: str = None) -> None:
@@ -18,3 +20,29 @@ class YAMLParser():
         # Save the configuration to an object attribute
         return config
 
+def constants(yml: dict = None):
+    if yml:
+        learning_rate = yml["learning_parameters"]["learning_rate"]
+        batch_size = yml["learning_parameters"]["batch_size"]
+        replay_memory_size = yml["learning_parameters"]["replay_memory_size"]
+        discount_factor = yml["learning_parameters"]["discount_factor"]
+        skip_learning = yml["meta_parameters"]["skip_learning"]
+        train_epochs = yml["learning_parameters"]["train_epochs"]
+        frame_repeat = yml["learning_parameters"]["frame_repeat"]
+        learning_steps_per_epoch = yml["learning_parameters"]["learning_steps_per_epoch"]
+
+        load_model = yml["meta_parameters"]["load_model"]
+        episodes_to_watch = yml["env_parameters"]["episodes_to_watch"]
+        cfg_path = yml["doom_cfg_path"]
+
+        resolution = yml["env_parameters"]["resolution"]
+        test_episodes_per_epoch = yml["learning_parameters"]["test_episodes_per_epoch"]
+        save_model = yml["meta_parameters"]["save_model"]
+        model_savefile = yml["meta_parameters"]["out_model_file"]
+
+    else:
+        raise Exception("Path to .yaml is None")
+    
+    return learning_rate, batch_size, replay_memory_size,discount_factor, skip_learning, train_epochs, \
+    frame_repeat, learning_steps_per_epoch, load_model, episodes_to_watch, \
+    cfg_path, resolution, test_episodes_per_epoch, save_model, model_savefile

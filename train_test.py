@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-# E. Culurciello, L. Mueller, Z. Boztoprak
-# December 2020
-
 from time import time
 from torch.nn import Module
 from itertools import product
@@ -11,21 +8,12 @@ import numpy as np
 import torchvision.transforms as transforms
 import torch
 from tqdm import trange
-from yaml_reader import YAMLParser
-
-config = YAMLParser(config="base_config").parse_config()
-resolution = config["env_parameters"]["resolution"]
-test_episodes_per_epoch = config["learning_parameters"]["test_episodes_per_epoch"]
-save_model = config["meta_parameters"]["save_model"]
-frame_repeat = config["learning_parameters"]["frame_repeat"]
-model_savefile = config["meta_parameters"]["out_model_file"]
-
 
 
 # Uses GPU if available
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-def preprocess(img: list = []) -> np.array:
+def preprocess(img: list, resolution: tuple) -> torch.tensor:
     """Down samples image to resolution"""
 
     transformer = transforms.Compose(
@@ -36,7 +24,7 @@ def preprocess(img: list = []) -> np.array:
     return img
 
 
-def test(game, agent: Module, n: int = 5) -> None:
+def test(game, agent: Module, test_episodes_per_epoch, frame_repeat, n: int = 5) -> None:
     actions = [list(a) for a in product([0, 1], repeat=n)]
 
     """Runs a test_episodes_per_epoch episodes and prints the result"""
@@ -62,7 +50,8 @@ def test(game, agent: Module, n: int = 5) -> None:
     )
 
 
-def run(game, agent, actions, num_epochs, frame_repeat, steps_per_epoch=2000):
+def run(game, agent: Module, actions: list, num_epochs: int = 10, frame_repeat: int = 20,\
+         resolution: tuple = [30, 45], save_model: bool = False, test_episodes_per_epoch: int = 1000, model_savefile: str = None, steps_per_epoch=2000) -> Module:
     """
     Run num epochs of training episodes.
     Skip frame_repeat number of frames after each action.
@@ -83,7 +72,7 @@ def run(game, agent, actions, num_epochs, frame_repeat, steps_per_epoch=2000):
             done = game.is_episode_finished()
 
             if not done:
-                next_state = preprocess(game.get_state().screen_buffer)
+                next_state = preprocess(game.get_state().screen_buffer, resolution=resolution)
             else:
                 next_state = np.zeros((1, 30, 45)).astype(np.float32)
 
@@ -109,7 +98,7 @@ def run(game, agent, actions, num_epochs, frame_repeat, steps_per_epoch=2000):
             "max: %.1f," % train_scores.max(),
         )
 
-        test(game, agent)
+        test(game, agent, test_episodes_per_epoch=test_episodes_per_epoch, frame_repeat=frame_repeat)
         if save_model:
             print("Saving the network weights to:", model_savefile)
             torch.save(agent.q_net, model_savefile)

@@ -7,7 +7,6 @@ from collections import deque
 from yaml_reader import YAMLParser
 import random
 
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 class DQNAgent:
     def __init__(
@@ -21,6 +20,8 @@ class DQNAgent:
         epsilon=1,
         epsilon_decay=0.9996,
         epsilon_min=0.1,
+        device = "cpu",
+        model_savefile = None
     ):
         self.action_size = action_size
         self.epsilon = epsilon
@@ -31,8 +32,12 @@ class DQNAgent:
         self.lr = lr
         self.memory = deque(maxlen=memory_size)
         self.criterion = nn.MSELoss()
-        self.config = YAMLParser(config="base_config").parse_config()
-        self.model_savefile = self.config["meta_parameters"]["out_model_file"]
+        if model_savefile:
+            self.model_savefile = model_savefile
+        else:
+            raise NotImplementedError("Model savefile not provided")
+        self.device = device
+
 
         if load_model:
             print("Loading model from: ", self.model_savefile)
@@ -42,8 +47,8 @@ class DQNAgent:
 
         else:
             print("Initializing new model")
-            self.q_net = DuelQNet(action_size).to(DEVICE)
-            self.target_net = DuelQNet(action_size).to(DEVICE)
+            self.q_net = DuelQNet(action_size).to(self.device)
+            self.target_net = DuelQNet(action_size).to(self.device)
 
         self.opt = optim.SGD(self.q_net.parameters(), lr=self.lr)
 
@@ -52,7 +57,7 @@ class DQNAgent:
             return random.choice(range(self.action_size))
         else:
             state = np.expand_dims(state, axis=0)
-            state = torch.from_numpy(state).float().to(DEVICE)
+            state = torch.from_numpy(state).float().to(self.device)
             action = torch.argmax(self.q_net(state)).item()
             return action
 
@@ -79,7 +84,7 @@ class DQNAgent:
         # value of the next states with double q learning
         # see https://arxiv.org/abs/1509.06461 for more information on double q learning
         with torch.no_grad():
-            next_states = torch.from_numpy(next_states).float().to(DEVICE)
+            next_states = torch.from_numpy(next_states).float().to(self.device)
             idx = row_idx, np.argmax(self.q_net(next_states).cpu().data.numpy(), 1)
             next_state_values = self.target_net(next_states).cpu().data.numpy()[idx]
             next_state_values = next_state_values[not_dones]
@@ -87,12 +92,12 @@ class DQNAgent:
         # this defines y = r + discount * max_a q(s', a)
         q_targets = rewards.copy()
         q_targets[not_dones] += self.discount * next_state_values
-        q_targets = torch.from_numpy(q_targets).float().to(DEVICE)
+        q_targets = torch.from_numpy(q_targets).float().to(self.device)
 
         # this selects only the q values of the actions taken
         idx = row_idx, actions
-        states = torch.from_numpy(states).float().to(DEVICE)
-        action_values = self.q_net(states)[idx].float().to(DEVICE)
+        states = torch.from_numpy(states).float().to(self.device)
+        action_values = self.q_net(states)[idx].float().to(self.device)
 
         self.opt.zero_grad()
         td_error = self.criterion(q_targets, action_values)
