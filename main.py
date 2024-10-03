@@ -8,6 +8,7 @@ from time import sleep
 from argparse import ArgumentParser
 from torch.cuda import is_available
 from yaml_reader import constants
+from torch.utils.tensorboard import SummaryWriter
 
 
 def main() -> None:
@@ -15,14 +16,18 @@ def main() -> None:
 
     parser = ArgumentParser(description='Bachelor Degree Script')
     parser.add_argument('-y', '--yaml', type=str, help='A path to yaml file', default="base_config")
+    parser.add_argument('-r', '--runname', type=str, help='A path to run', default="runs/run_1")
     args = parser.parse_args()
     yaml = args.yaml
+    runname = args.runname
+
+    writter = SummaryWriter(log_dir=runname)
 
     config = YAMLParser(config=yaml).parse_config()
 
     learning_rate, batch_size, replay_memory_size,discount_factor, skip_learning, train_epochs, \
     frame_repeat, learning_steps_per_epoch, load_model, episodes_to_watch, \
-    cfg_path, resolution, test_episodes_per_epoch, save_model, model_savefile = constants(config)
+    cfg_path, resolution, test_episodes_per_epoch, save_model, model_savefile, weight_decay = constants(config)
 
     # Initialize game and actions
     game = create_simple_game(config_file_path=cfg_path)
@@ -38,13 +43,15 @@ def main() -> None:
         discount_factor=discount_factor,
         load_model=load_model,
         model_savefile=model_savefile,
-        device=DEVICE
+        device=DEVICE, 
+        weight_decay=weight_decay,
     )
 
     # Run the training for the set number of epochs
     if not skip_learning:
         agent, game = run(
             game,
+            writter,
             agent,
             actions,
             num_epochs=train_epochs,

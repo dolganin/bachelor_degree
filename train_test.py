@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from time import time
 from torch.nn import Module
 from torch import save
@@ -10,6 +8,7 @@ import numpy as np
 import torchvision.transforms as transforms
 from tqdm import trange
 from vizdoom import DoomGame
+from typing import Tuple
 
 
 # Uses GPU if available
@@ -25,7 +24,7 @@ def preprocess(img: list, resolution: tuple) -> tensor:
     return img
 
 
-def test(game, agent: Module, test_episodes_per_epoch, frame_repeat, n: int = 5, resolution: tuple = (30, 45)) -> None:
+def test(game, writter, epoch, agent: Module, test_episodes_per_epoch, frame_repeat, n: int = 5, resolution: tuple = (30, 45)) -> None:
     actions = [list(a) for a in product([0, 1], repeat=n)]
 
     """Runs a test_episodes_per_epoch episodes and prints the result"""
@@ -49,11 +48,15 @@ def test(game, agent: Module, test_episodes_per_epoch, frame_repeat, n: int = 5,
         "min: %.1f" % test_scores.min(),
         "max: %.1f" % test_scores.max(),
     )
+    writter.add_scalar('Test score minimum', test_scores.min(), epoch)
+    writter.add_scalar('Test score maximum', test_scores.max(), epoch)
+    writter.add_scalar('Test score mean', test_scores.mean(), epoch)
+    writter.add_scalar('Test score std', test_scores.std(), epoch)
 
 
-def run(game, agent: Module, actions: list, num_epochs: int = 10, frame_repeat: int = 20,\
+def run(game, writter, agent: Module, actions: list, num_epochs: int = 10, frame_repeat: int = 20,\
          resolution: tuple = [30, 45], save_model: bool = False, test_episodes_per_epoch: int = 1000,\
-              model_savefile: str = None, steps_per_epoch=2000) -> [DoomGame, Module]:
+              model_savefile: str = None, steps_per_epoch=2000) -> Tuple[DoomGame, Module]:
     """
     Run num epochs of training episodes.
     Skip frame_repeat number of frames after each action.
@@ -81,13 +84,16 @@ def run(game, agent: Module, actions: list, num_epochs: int = 10, frame_repeat: 
             agent.append_memory(state, action, reward, next_state, done)
 
             if global_step > agent.batch_size:
-                agent.train()
+                loss = agent.train()
+                writter.add_scalar('Loss', loss.cpu().detach().numpy(), epoch)
 
             if done:
                 train_scores.append(game.get_total_reward())
                 game.new_episode()
 
             global_step += 1
+
+
 
         agent.update_target_net()
         train_scores = np.array(train_scores)
@@ -99,8 +105,13 @@ def run(game, agent: Module, actions: list, num_epochs: int = 10, frame_repeat: 
             "min: %.1f," % train_scores.min(),
             "max: %.1f," % train_scores.max(),
         )
+        writter.add_scalar('Train score minimum', train_scores.min(), epoch)
+        writter.add_scalar('Train score maximum', train_scores.max(), epoch)
+        writter.add_scalar('Train score mean', train_scores.mean(), epoch)
+        writter.add_scalar('Train score std', train_scores.std(), epoch)
+                
 
-        test(game, agent, test_episodes_per_epoch=test_episodes_per_epoch, frame_repeat=frame_repeat, resolution=resolution)
+        test(game, writter, epoch, agent, test_episodes_per_epoch=test_episodes_per_epoch, frame_repeat=frame_repeat, resolution=resolution)
         if save_model:
             print("Saving the network weights to:", model_savefile)
             save(agent.q_net, model_savefile)

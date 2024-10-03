@@ -1,27 +1,27 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
+from torch.optim import AdamW
 from duel_qagent import DuelQNet
 import numpy as np
 from collections import deque
-from yaml_reader import YAMLParser
 import random
 
 
 class DQNAgent:
     def __init__(
         self,
-        action_size,
-        memory_size,
-        batch_size,
-        discount_factor,
-        lr,
-        load_model,
-        epsilon=1,
-        epsilon_decay=0.9996,
-        epsilon_min=0.1,
-        device = "cpu",
-        model_savefile = None
+        action_size: float,
+        memory_size: float,
+        batch_size: float,
+        discount_factor: float,
+        lr: float,
+        load_model: bool = False,
+        epsilon: float = 1,
+        epsilon_decay: float = 0.9996,
+        epsilon_min: float=0.1,
+        device: str = "cpu",
+        model_savefile: str = None,
+        weight_decay: float = 8e-4,
     ):
         self.action_size = action_size
         self.epsilon = epsilon
@@ -50,7 +50,7 @@ class DQNAgent:
             self.q_net = DuelQNet(action_size).to(self.device)
             self.target_net = DuelQNet(action_size).to(self.device)
 
-        self.opt = optim.SGD(self.q_net.parameters(), lr=self.lr)
+        self.opt = AdamW(self.q_net.parameters(), lr=self.lr, weight_decay=weight_decay)
 
     def get_action(self, state):
         if np.random.uniform() < self.epsilon:
@@ -108,3 +108,5 @@ class DQNAgent:
             self.epsilon *= self.epsilon_decay
         else:
             self.epsilon = self.epsilon_min
+
+        return td_error

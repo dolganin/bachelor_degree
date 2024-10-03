@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 
 class DuelQNet(nn.Module):
     """
@@ -6,7 +7,7 @@ class DuelQNet(nn.Module):
     see https://arxiv.org/abs/1511.06581 for more information.
     """
 
-    def __init__(self, available_actions_count):
+    def __init__(self, available_actions_count) -> None:
         super().__init__()
         self.conv1 = nn.Sequential(
             nn.Conv2d(1, 8, kernel_size=3, stride=2, bias=False),
@@ -38,7 +39,7 @@ class DuelQNet(nn.Module):
             nn.Linear(96, 64), nn.ReLU(), nn.Linear(64, available_actions_count)
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.tensor) -> torch.tensor:
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)

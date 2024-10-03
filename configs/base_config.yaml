@@ -1,12 +1,13 @@
 learning_parameters:
-  learning_rate: 0.00025
-  discount_factor: 0.99
-  train_epochs: 5
+  learning_rate: 0.003
+  discount_factor: 0.96
+  train_epochs: 100
   replay_memory_size: 10000
   batch_size: 64
-  test_episodes_per_epoch: 100
-  frame_repeat: 12
-  learning_steps_per_epoch: 1000
+  test_episodes_per_epoch: 1000
+  frame_repeat: 48
+  learning_steps_per_epoch: 100000
+  weight_decay: 0.99
 
 env_parameters:
   resolution: [30, 45]
@@ -18,7 +19,7 @@ meta_parameters:
   load_model: False
   skip_learning: False
 
-doom_cfg_path: "/workspace/code/ViZDoom/scenarios/basic.cfg"
+doom_cfg_path: "/workspace/code/ViZDoom/scenarios/defend_the_center.cfg"
 
 
   
