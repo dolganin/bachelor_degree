@@ -5,7 +5,7 @@ from duel_qagent import DuelQNet
 import numpy as np
 from collections import deque
 from yaml_reader import YAMLParser
-import numpy.random as random
+import random
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -31,7 +31,7 @@ class DQNAgent:
         self.lr = lr
         self.memory = deque(maxlen=memory_size)
         self.criterion = nn.MSELoss()
-        self.config = YAMLParser.parse_config().config
+        self.config = YAMLParser(config="base_config").parse_config()
         self.model_savefile = self.config["meta_parameters"]["out_model_file"]
 
         if load_model:
@@ -63,6 +63,7 @@ class DQNAgent:
         self.memory.append((state, action, reward, next_state, done))
 
     def train(self):
+
         batch = random.sample(self.memory, self.batch_size)
         batch = np.array(batch, dtype=object)
 

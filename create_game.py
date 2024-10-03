@@ -1,4 +1,6 @@
-def create_simple_game():
+import vizdoom as vzd
+
+def create_simple_game(config_file_path):
     print("Initializing doom...")
     game = vzd.DoomGame()
     game.load_config(config_file_path)

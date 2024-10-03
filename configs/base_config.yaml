@@ -9,7 +9,7 @@ learning_parameters:
   learning_steps_per_epoch: 1000
 
 env_parameters:
-  resolution: (30, 45)
+  resolution: [30, 45]
   episodes_to_watch: 10
 
 meta_parameters:
@@ -18,29 +18,7 @@ meta_parameters:
   load_model: False
   skip_learning: False
 
-doom_parameters:
-  doom_scenario_path: basic.wad
-  doom_map: map01
-  living_reward: -1
-  screen_resolution: RES_320X240
-  screen_format: CRCGCB
-  render_hud: true
-  render_crosshair: false
-  render_weapon: true
-  render_decals: false
-  render_particles: false
-  window_visible: true
-  episode_start_time: 14
-  episode_timeout: 300
-  available_buttons:
-	{
-		MOVE_LEFT,
-		MOVE_RIGHT,
-		ATTACK
-	}
-  available_game_variables: { AMMO2 }
-  mode: PLAYER
-  doom_skill: 5
+doom_cfg_path: "/workspace/code/ViZDoom/scenarios/basic.cfg"
 
 
   

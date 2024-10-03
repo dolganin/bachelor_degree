@@ -9,21 +9,22 @@ from time import sleep
 
 
 if __name__ == "__main__":
-    config = YAMLParser.parse_config().config
+    config = YAMLParser(config="base_config").parse_config()
     learning_rate = config["learning_parameters"]["learning_rate"]
     batch_size = config["learning_parameters"]["batch_size"]
     replay_memory_size = config["learning_parameters"]["replay_memory_size"]
     discount_factor = config["learning_parameters"]["discount_factor"]
-    skip_learning = config["learning_parameters"]["skip_learning"]
+    skip_learning = config["meta_parameters"]["skip_learning"]
     train_epochs = config["learning_parameters"]["train_epochs"]
     frame_repeat = config["learning_parameters"]["frame_repeat"]
     learning_steps_per_epoch = config["learning_parameters"]["learning_steps_per_epoch"]
 
     load_model = config["meta_parameters"]["load_model"]
     episodes_to_watch = config["env_parameters"]["episodes_to_watch"]
+    cfg_path = config["doom_cfg_path"]
 
     # Initialize game and actions
-    game = create_simple_game()
+    game = create_simple_game(config_file_path=cfg_path)
     n = game.get_available_buttons_size()
     actions = [list(a) for a in it.product([0, 1], repeat=n)]
 

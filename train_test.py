@@ -3,17 +3,17 @@
 # E. Culurciello, L. Mueller, Z. Boztoprak
 # December 2020
 
-from collections import deque
 from time import time
-import itertools as it
+from torch.nn import Module
+from itertools import product
 
 import numpy as np
-import skimage.transform
+import torchvision.transforms as transforms
 import torch
 from tqdm import trange
 from yaml_reader import YAMLParser
 
-config = YAMLParser.parse_config().config
+config = YAMLParser(config="base_config").parse_config()
 resolution = config["env_parameters"]["resolution"]
 test_episodes_per_epoch = config["learning_parameters"]["test_episodes_per_epoch"]
 save_model = config["meta_parameters"]["save_model"]
@@ -22,24 +22,22 @@ model_savefile = config["meta_parameters"]["out_model_file"]
 
 
 
-# Configuration file path
-#config_file_path = os.path.join(vzd.scenarios_path, "simpler_basic.cfg")
-# config_file_path = os.path.join(vzd.scenarios_path, "rocket_basic.cfg")
-# config_file_path = os.path.join(vzd.scenarios_path, "basic.cfg")
-
 # Uses GPU if available
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-def preprocess(img):
+def preprocess(img: list = []) -> np.array:
     """Down samples image to resolution"""
-    img = skimage.transform.resize(img, resolution)
-    img = img.astype(np.float32)
-    img = np.expand_dims(img, axis=0)
+
+    transformer = transforms.Compose(
+        [   transforms.ToTensor(),
+            transforms.Resize(tuple(resolution))
+            ])
+    img = transformer(img)
     return img
 
 
-def test(game, agent, n):
-    actions = [list(a) for a in it.product([0, 1], repeat=n)]
+def test(game, agent: Module, n: int = 5) -> None:
+    actions = [list(a) for a in product([0, 1], repeat=n)]
 
     """Runs a test_episodes_per_epoch episodes and prints the result"""
     print("\nTesting...")
