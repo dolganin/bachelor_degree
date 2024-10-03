@@ -1,11 +1,11 @@
 from create_game import create_simple_game
 from qagent import DQNAgent
 from yaml_reader import YAMLParser
-import itertools as it
+from itertools import product
 from train_test import run, preprocess
 import vizdoom as vzd
 from time import sleep
-import argparse
+from argparse import ArgumentParser
 from torch.cuda import is_available
 from yaml_reader import constants
 
@@ -13,7 +13,7 @@ from yaml_reader import constants
 def main() -> None:
     DEVICE = "cuda:0" if is_available() else "cpu"
 
-    parser = argparse.ArgumentParser(description='Bachelor Degree Script')
+    parser = ArgumentParser(description='Bachelor Degree Script')
     parser.add_argument('-y', '--yaml', type=str, help='A path to yaml file', default="base_config")
     args = parser.parse_args()
     yaml = args.yaml
@@ -27,7 +27,7 @@ def main() -> None:
     # Initialize game and actions
     game = create_simple_game(config_file_path=cfg_path)
     n = game.get_available_buttons_size()
-    actions = [list(a) for a in it.product([0, 1], repeat=n)]
+    actions = [list(a) for a in product([0, 1], repeat=n)]
 
     # Initialize our agent with the set parameters
     agent = DQNAgent(

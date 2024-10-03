@@ -9,6 +9,8 @@ def create_simple_game(config_file_path):
     game.set_screen_format(vzd.ScreenFormat.GRAY8)
     game.set_screen_resolution(vzd.ScreenResolution.RES_640X480)
     game.init()
-    print("Doom initialized.")
+    print("======================================================\
+                                Doom initialized.\
+          =======================================================")
 
     return game

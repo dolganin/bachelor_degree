@@ -13,7 +13,7 @@ env_parameters:
   episodes_to_watch: 10
 
 meta_parameters:
-  out_model_file: "model-doom.pth"
+  out_model_file: "weights/model-doom.pth"
   save_model: True
   load_model: False
   skip_learning: False

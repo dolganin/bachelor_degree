@@ -2,18 +2,19 @@
 
 from time import time
 from torch.nn import Module
+from torch import save
+from torch import tensor
 from itertools import product
 
 import numpy as np
 import torchvision.transforms as transforms
-import torch
 from tqdm import trange
+from vizdoom import DoomGame
 
 
 # Uses GPU if available
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-def preprocess(img: list, resolution: tuple) -> torch.tensor:
+def preprocess(img: list, resolution: tuple) -> tensor:
     """Down samples image to resolution"""
 
     transformer = transforms.Compose(
@@ -24,7 +25,7 @@ def preprocess(img: list, resolution: tuple) -> torch.tensor:
     return img
 
 
-def test(game, agent: Module, test_episodes_per_epoch, frame_repeat, n: int = 5) -> None:
+def test(game, agent: Module, test_episodes_per_epoch, frame_repeat, n: int = 5, resolution: tuple = (30, 45)) -> None:
     actions = [list(a) for a in product([0, 1], repeat=n)]
 
     """Runs a test_episodes_per_epoch episodes and prints the result"""
@@ -33,7 +34,7 @@ def test(game, agent: Module, test_episodes_per_epoch, frame_repeat, n: int = 5)
     for test_episode in trange(test_episodes_per_epoch, leave=False):
         game.new_episode()
         while not game.is_episode_finished():
-            state = preprocess(game.get_state().screen_buffer)
+            state = preprocess(game.get_state().screen_buffer, resolution=resolution)
             best_action_index = agent.get_action(state)
 
             game.make_action(actions[best_action_index], frame_repeat)
@@ -51,7 +52,8 @@ def test(game, agent: Module, test_episodes_per_epoch, frame_repeat, n: int = 5)
 
 
 def run(game, agent: Module, actions: list, num_epochs: int = 10, frame_repeat: int = 20,\
-         resolution: tuple = [30, 45], save_model: bool = False, test_episodes_per_epoch: int = 1000, model_savefile: str = None, steps_per_epoch=2000) -> Module:
+         resolution: tuple = [30, 45], save_model: bool = False, test_episodes_per_epoch: int = 1000,\
+              model_savefile: str = None, steps_per_epoch=2000) -> [DoomGame, Module]:
     """
     Run num epochs of training episodes.
     Skip frame_repeat number of frames after each action.
@@ -66,7 +68,7 @@ def run(game, agent: Module, actions: list, num_epochs: int = 10, frame_repeat: 
         print(f"\nEpoch #{epoch + 1}")
 
         for _ in trange(steps_per_epoch, leave=False):
-            state = preprocess(game.get_state().screen_buffer)
+            state = preprocess(game.get_state().screen_buffer, resolution=resolution)
             action = agent.get_action(state)
             reward = game.make_action(actions[action], frame_repeat)
             done = game.is_episode_finished()
@@ -98,10 +100,10 @@ def run(game, agent: Module, actions: list, num_epochs: int = 10, frame_repeat: 
             "max: %.1f," % train_scores.max(),
         )
 
-        test(game, agent, test_episodes_per_epoch=test_episodes_per_epoch, frame_repeat=frame_repeat)
+        test(game, agent, test_episodes_per_epoch=test_episodes_per_epoch, frame_repeat=frame_repeat, resolution=resolution)
         if save_model:
             print("Saving the network weights to:", model_savefile)
-            torch.save(agent.q_net, model_savefile)
+            save(agent.q_net, model_savefile)
         print("Total elapsed time: %.2f minutes" % ((time() - start_time) / 60.0))
 
     game.close()
