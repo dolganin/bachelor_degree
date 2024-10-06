@@ -1,12 +1,12 @@
 learning_parameters:
   learning_rate: 0.003
   discount_factor: 0.96
-  train_epochs: 100
+  train_epochs: 2
   replay_memory_size: 10000
   batch_size: 64
-  test_episodes_per_epoch: 1000
+  test_episodes_per_epoch: 1
   frame_repeat: 48
-  learning_steps_per_epoch: 100000
+  learning_steps_per_epoch: 10000
   weight_decay: 0.99
 
 env_parameters:
