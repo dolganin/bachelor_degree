@@ -3,6 +3,7 @@ from torch.nn import Module
 from torch import save
 from torch import tensor
 from itertools import product
+from publish import publish_numpy_array
 
 import numpy as np
 import torchvision.transforms as transforms
@@ -11,7 +12,6 @@ from vizdoom import DoomGame
 from typing import Tuple
 
 
-# Uses GPU if available
 
 def preprocess(img: list, resolution: tuple) -> tensor:
     """Down samples image to resolution"""
@@ -34,6 +34,7 @@ def test(game, writter, epoch, agent: Module, test_episodes_per_epoch, frame_rep
         game.new_episode()
         while not game.is_episode_finished():
             state = preprocess(game.get_state().screen_buffer, resolution=resolution)
+            screen = update_frame(game.get_state().screen_buffer)
             best_action_index = agent.get_action(state)
 
             game.make_action(actions[best_action_index], frame_repeat)
@@ -119,4 +120,3 @@ def run(game, writter, agent: Module, actions: list, num_epochs: int = 10, frame
 
     game.close()
     return agent, game
-

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VizDoom Stream with WebSockets</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+            socket.on('new_frame', function(data) {
+                var img = document.getElementById('stream');
+                img.src = 'data:image/jpeg;base64,' + data.image;
+            });
+        });бл
+    </script>
+</head>
+<body>
+    <h1>VizDoom Training Stream with WebSockets</h1>
+    <img id="stream" width="800" />
+</body>
+</html>

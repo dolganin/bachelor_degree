@@ -9,6 +9,7 @@ from argparse import ArgumentParser
 from torch.cuda import is_available
 from yaml_reader import constants
 from torch.utils.tensorboard import SummaryWriter
+#from capture_frames import update_frame
 
 
 def main() -> None:
@@ -31,6 +32,13 @@ def main() -> None:
 
     # Initialize game and actions
     game = create_simple_game(config_file_path=cfg_path)
+    game.init()
+
+    # game.close()
+    # game.init()
+    # game.set_window_visible(True)
+    # game.set_mode(vzd.Mode.ASYNC_PLAYER)
+
     n = game.get_available_buttons_size()
     actions = [list(a) for a in product([0, 1], repeat=n)]
 
@@ -77,6 +85,7 @@ def main() -> None:
         while not game.is_episode_finished():
             state = preprocess(game.get_state().screen_buffer, resolution=resolution)
             best_action_index = agent.get_action(state)
+            new_state = update_frame(game.get_state().screen_buffer)
 
             # Instead of make_action(a, frame_repeat) in order to make the animation smooth
             game.set_action(actions[best_action_index])
