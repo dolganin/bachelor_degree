@@ -6,6 +6,33 @@
     <title>VizDoom Training Stream</title>
     <!-- Обновлённый Socket.IO клиент до версии 4.x -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        /* Стили для страницы */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000; /* Черный фон */
+            color: #fff; /* Белый текст */
+            display: flex; /* Используем Flexbox для выравнивания */
+            flex-direction: column; /* Вертикальное выравнивание */
+            align-items: center; /* Центрируем по горизонтали */
+            justify-content: center; /* Центрируем по вертикали */
+            height: 100vh; /* Высота на весь экран */
+            font-family: Arial, sans-serif; /* Шрифт */
+        }
+        
+        h1 {
+            margin-bottom: 20px; /* Отступ снизу */
+            font-size: 2.5em; /* Размер шрифта заголовка */
+            text-align: center; /* Выравнивание по центру */
+        }
+
+        img {
+            border: 5px solid #fff; /* Белая рамка вокруг изображения */
+            border-radius: 10px; /* Закругление углов рамки */
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5); /* Тень для эффекта */
+        }
+    </style>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             var socket = io();  // Более простой и надёжный способ подключения

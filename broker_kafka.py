@@ -1,5 +1,4 @@
 from confluent_kafka import Producer
-import numpy as np
 
 # Конфигурация продюсера Kafka
 producer_config = {
