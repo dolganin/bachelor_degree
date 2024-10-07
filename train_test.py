@@ -3,7 +3,7 @@ from torch.nn import Module
 from torch import save
 from torch import tensor
 from itertools import product
-from publish import publish_numpy_array
+from broker_kafka import publish_numpy_array
 
 import numpy as np
 import torchvision.transforms as transforms
@@ -34,7 +34,11 @@ def test(game, writter, epoch, agent: Module, test_episodes_per_epoch, frame_rep
         game.new_episode()
         while not game.is_episode_finished():
             state = preprocess(game.get_state().screen_buffer, resolution=resolution)
-            screen = update_frame(game.get_state().screen_buffer)
+            temporal_state = np.array(game.get_state().screen_buffer, dtype=np.uint8)
+            new_state = np.repeat(temporal_state[:, :, np.newaxis], 3, axis=2)
+
+            publish_numpy_array(new_state)
+
             best_action_index = agent.get_action(state)
 
             game.make_action(actions[best_action_index], frame_repeat)

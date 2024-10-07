@@ -1,21 +1,35 @@
+<!-- templates/index_socket.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VizDoom Stream with WebSockets</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <title>VizDoom Training Stream</title>
+    <!-- Обновлённый Socket.IO клиент до версии 4.x -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+            var socket = io();  // Более простой и надёжный способ подключения
             socket.on('new_frame', function(data) {
                 var img = document.getElementById('stream');
                 img.src = 'data:image/jpeg;base64,' + data.image;
             });
-        });бл
+
+            socket.on('connect', function() {
+                console.log('Connected to server');
+            });
+
+            socket.on('disconnect', function() {
+                console.log('Disconnected from server');
+            });
+
+            socket.on('connect_error', function(error) {
+                console.error('Connection Error:', error);
+            });
+        });
     </script>
 </head>
 <body>
-    <h1>VizDoom Training Stream with WebSockets</h1>
-    <img id="stream" width="800" />
+    <h1>VizDoom Training Stream</h1>
+    <img id="stream" width="800" alt="Video Stream" />
 </body>
 </html>
