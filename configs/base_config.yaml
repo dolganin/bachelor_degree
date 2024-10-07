@@ -4,9 +4,9 @@ learning_parameters:
   train_epochs: 10
   replay_memory_size: 10000
   batch_size: 64
-  test_episodes_per_epoch: 100000
+  test_episodes_per_epoch: 100
   frame_repeat: 48
-  learning_steps_per_epoch: 100
+  learning_steps_per_epoch: 10000
   weight_decay: 0.99
 
 env_parameters:
@@ -19,7 +19,7 @@ meta_parameters:
   load_model: False
   skip_learning: False
 
-doom_cfg_path: "/workspace/code/ViZDoom/scenarios/defend_the_center.cfg"
+doom_cfg_path: "/workspace/code/ViZDoom/scenarios/basic.cfg"
 
 
   

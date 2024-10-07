@@ -14,7 +14,7 @@ socketio = SocketIO(app)
 @app.route('/')
 def index():
     """Маршрут для рендеринга основной страницы с отображением видео."""
-    return render_template('index_socket.html')
+    return render_template('advanced_socket.html')
 
 @app.route('/update_frame', methods=['POST'])
 def update_frame():
@@ -25,7 +25,7 @@ def update_frame():
 
     image = data['image']
     # Отправка изображения через WebSocket
-    socketio.emit('new_frame', {'image': image})
+    socketio.emit('new_frame', {'image': image, 'loss': 'NaN', 'epoch': "Undefined", 'meanReward': 'NaN'})
     logger.debug("Frame received and sent to client.")
     
     return jsonify({'status': 'success'}), 200

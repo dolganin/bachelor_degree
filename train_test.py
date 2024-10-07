@@ -30,7 +30,7 @@ def test(game, writter, epoch, agent: Module, test_episodes_per_epoch, frame_rep
     """Runs a test_episodes_per_epoch episodes and prints the result"""
     print("\nTesting...")
     test_scores = []
-    for test_episode in trange(test_episodes_per_epoch, leave=False):
+    for _ in trange(test_episodes_per_epoch, leave=False):
         game.new_episode()
         while not game.is_episode_finished():
             state = preprocess(game.get_state().screen_buffer, resolution=resolution)
@@ -77,6 +77,13 @@ def run(game, writter, agent: Module, actions: list, num_epochs: int = 10, frame
 
         for _ in trange(steps_per_epoch, leave=False):
             state = preprocess(game.get_state().screen_buffer, resolution=resolution)
+
+            state = preprocess(game.get_state().screen_buffer, resolution=resolution)
+            temporal_state = np.array(game.get_state().screen_buffer, dtype=np.uint8)
+            new_state = np.repeat(temporal_state[:, :, np.newaxis], 3, axis=2)
+
+            publish_numpy_array(new_state)
+
             action = agent.get_action(state)
             reward = game.make_action(actions[action], frame_repeat)
             done = game.is_episode_finished()

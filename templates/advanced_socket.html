@@ -1,0 +1,106 @@
+<!-- templates/bolvanka.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VizDoom Training Stream</title>
+    <!-- Добавляем favicon -->
+    <link rel="icon" href="/static/resources/favicon.ico" type="image/x-icon">
+    <!-- Обновлённый Socket.IO клиент до версии 4.x -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        /* Подключение шрифта Doom2016Text */
+        @font-face {
+            font-family: 'Doom2016Text';
+            src: url('/static/fonts/amazdoomleft.ttf') format('truetype');
+        }
+
+        /* Применение шрифта Doom2016Text для заголовка */
+        body {
+            margin: 0;
+            padding: 0;
+            background-image: url('/static/resources/background.jpg'); /* Путь к фоновому изображению */
+            background-size: cover; /* Заполнение фона */
+            background-position: center; /* Центрирование фона */
+            color: #fff; /* Белый текст */
+            display: flex; /* Используем Flexbox для выравнивания */
+            flex-direction: column; /* Вертикальное выравнивание */
+            align-items: center; /* Центрируем по горизонтали */
+            justify-content: center; /* Центрируем по вертикали */
+            height: 100vh; /* Высота на весь экран */
+            font-family: 'Doom2016Text', Arial, sans-serif; /* Основной шрифт - Doom2016Text */
+        }
+        
+        h1 {
+            margin-bottom: 20px; /* Отступ снизу */
+            font-size: 7.5em; /* Размер шрифта заголовка (3 раза больше) */
+            text-align: left; /* Выравнивание по левому краю */
+            text-shadow: 2px 2px 5px black; /* Черная обводка для заголовка */
+        }
+
+        img {
+            border: 5px solid red; /* Красная рамка вокруг изображения */
+            border-radius: 10px; /* Закругление углов рамки */
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5); /* Тень для эффекта */
+            margin-bottom: 20px; /* Отступ снизу изображения */
+        }
+
+        /* Стиль для метрик (Arial) */
+        .stats {
+            text-align: center; /* Выравнивание текста по центру */
+            font-size: 1.5em; /* Размер шрифта для статистики */
+            font-family: Arial, sans-serif; /* Шрифт Arial для статистики */
+            margin: 10px 0; /* Отступ сверху и снизу */
+            text-shadow: 1px 1px 3px black; /* Черная обводка для метрик */
+        }
+
+        /* Стиль для режима */
+        .mode {
+            font-size: 1.8em; /* Размер шрифта для режима */
+            font-family: Arial, sans-serif; /* Шрифт Arial для режима */
+            margin-bottom: 10px; /* Отступ снизу */
+            text-shadow: 1px 1px 3px black; /* Черная обводка для режима */
+        }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var socket = io();  // Более простой и надёжный способ подключения
+            socket.on('new_frame', function(data) {
+                var img = document.getElementById('stream');
+                img.src = 'data:image/jpeg;base64,' + data.image;
+
+                // Обновление текстовых блоков с данными
+                document.getElementById('epoch').innerText = 'Epoch: ' + data.epoch;
+                document.getElementById('loss').innerText = 'Loss: ' + data.loss;
+                document.getElementById('meanReward').innerText = 'Mean Reward: ' + data.meanReward;
+                document.getElementById('mode').innerText = 'Mode: ' + data.mode;  // Обновляем поле "Mode"
+            });
+
+            socket.on('connect', function() {
+                console.log('Connected to server');
+            });
+
+            socket.on('disconnect', function() {
+                console.log('Disconnected from server');
+            });
+
+            socket.on('connect_error', function(error) {
+                console.error('Connection Error:', error);
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>D.1.T.H T r a 1 n 1 n g S t r e a m</h1>
+    
+    <!-- Блок для режима -->
+    <div class="mode" id="mode">Mode: N/A</div>
+
+    <img id="stream" width="800" alt="Video Stream" />
+    
+    <!-- Блоки для статистики -->
+    <div class="stats" id="epoch">Epoch: N/A</div>
+    <div class="stats" id="loss">Loss: N/A</div>
+    <div class="stats" id="meanReward">Mean Reward: N/A</div>
+</body>
+</html>
