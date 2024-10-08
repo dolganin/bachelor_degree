@@ -1,20 +1,20 @@
 learning_parameters:
   learning_rate: 0.003
   discount_factor: 0.96
-  train_epochs: 10
-  replay_memory_size: 10000
+  train_epochs: 20
+  replay_memory_size: 100000
   batch_size: 64
-  test_episodes_per_epoch: 100
+  test_episodes_per_epoch: 1000
   frame_repeat: 48
-  learning_steps_per_epoch: 10000
-  weight_decay: 0.99
+  learning_steps_per_epoch: 100000
+  weight_decay: 0.96
 
 env_parameters:
   resolution: [30, 45]
   episodes_to_watch: 10
 
 meta_parameters:
-  out_model_file: "weights/model-doom.pth"
+  out_model_file: "weights/transformer_map10.pth"
   save_model: True
   load_model: False
   skip_learning: False

@@ -11,15 +11,19 @@ from yaml_reader import constants
 from torch.utils.tensorboard import SummaryWriter
 
 
+
 def main() -> None:
     DEVICE = "cuda:0" if is_available() else "cpu"
 
     parser = ArgumentParser(description='Bachelor Degree Script')
     parser.add_argument('-y', '--yaml', type=str, help='A path to yaml file', default="base_config")
-    parser.add_argument('-r', '--runname', type=str, help='A path to run', default="runs/run_1")
+    parser.add_argument('-r', '--runname', type=str, help='A path to name of folder for run', default="runs/run_0")
+    parser.add_argument('-w', '--weights', type=str, help='A path to weights of model', default=None)
+    
     args = parser.parse_args()
     yaml = args.yaml
     runname = args.runname
+    weights = args.weights
 
     writter = SummaryWriter(log_dir=runname)
 
@@ -28,6 +32,9 @@ def main() -> None:
     learning_rate, batch_size, replay_memory_size,discount_factor, skip_learning, train_epochs, \
     frame_repeat, learning_steps_per_epoch, load_model, episodes_to_watch, \
     cfg_path, resolution, test_episodes_per_epoch, save_model, model_savefile, weight_decay = constants(config)
+
+    if weights:
+        model_savefile = weights
 
     # Initialize game and actions
     game = create_simple_game(config_file_path=cfg_path)

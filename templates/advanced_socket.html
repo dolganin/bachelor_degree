@@ -1,4 +1,3 @@
-<!-- templates/bolvanka.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,19 +22,32 @@
             background-size: cover; /* Заполнение фона */
             background-position: center; /* Центрирование фона */
             color: #fff; /* Белый текст */
-            display: flex; /* Используем Flexbox для выравнивания */
-            flex-direction: column; /* Вертикальное выравнивание */
-            align-items: center; /* Центрируем по горизонтали */
-            justify-content: center; /* Центрируем по вертикали */
+            display: flex;
+            justify-content: center; /* Центрирование по вертикали */
+            align-items: center;
             height: 100vh; /* Высота на весь экран */
             font-family: 'Doom2016Text', Arial, sans-serif; /* Основной шрифт - Doom2016Text */
+            overflow: hidden; /* Чтобы скрыть элементы, выходящие за пределы */
         }
         
+        /* Вертикальный заголовок */
         h1 {
-            margin-bottom: 20px; /* Отступ снизу */
-            font-size: 7.5em; /* Размер шрифта заголовка (3 раза больше) */
-            text-align: left; /* Выравнивание по левому краю */
+            margin: 0;
+            font-size: 5em; /* Размер шрифта заголовка */
+            writing-mode: vertical-rl; /* Поворот текста вертикально справа налево */
+            text-align: center;
             text-shadow: 2px 2px 5px black; /* Черная обводка для заголовка */
+            border: 5px solid red; /* Красная рамка вокруг заголовка */
+            border-radius: 10px; /* Закругление углов рамки */
+            padding: 20px 10px; /* Внутренние отступы для заголовка */
+            background-color: rgba(0, 0, 0, 0.6); /* Полупрозрачный черный фон */
+            position: absolute;
+            left: 0; /* Прижимаем заголовок к левому краю */
+            top: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         img {
@@ -45,19 +57,32 @@
             margin-bottom: 20px; /* Отступ снизу изображения */
         }
 
-        /* Стиль для метрик (Arial) */
-        .stats {
-            text-align: center; /* Выравнивание текста по центру */
-            font-size: 1.5em; /* Размер шрифта для статистики */
+        /* Новый стиль для контейнера статистики */
+        .stats-container {
+            position: absolute; /* Абсолютное позиционирование */
+            top: 20px; /* Отступ от верхнего края */
+            right: 20px; /* Отступ от правого края */
+            background-color: rgba(255, 0, 0, 0.8); /* Полупрозрачный красный фон */
+            border: 2px solid #ff0000; /* Красное обрамление */
+            border-radius: 15px; /* Закругленные углы */
+            padding: 15px; /* Отступы внутри контейнера */
+            text-align: left; /* Выравнивание текста по левому краю */
             font-family: Arial, sans-serif; /* Шрифт Arial для статистики */
-            margin: 10px 0; /* Отступ сверху и снизу */
+            color: white; /* Белый текст */
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); /* Тень для эффекта */
+            z-index: 10; /* Поверх остальных элементов */
+        }
+
+        /* Стиль для метрик */
+        .stats {
+            font-size: 1.5em; /* Размер шрифта для статистики */
+            margin: 5px 0; /* Отступ между элементами статистики */
             text-shadow: 1px 1px 3px black; /* Черная обводка для метрик */
         }
 
         /* Стиль для режима */
         .mode {
             font-size: 1.8em; /* Размер шрифта для режима */
-            font-family: Arial, sans-serif; /* Шрифт Arial для режима */
             margin-bottom: 10px; /* Отступ снизу */
             text-shadow: 1px 1px 3px black; /* Черная обводка для режима */
         }
@@ -91,16 +116,19 @@
     </script>
 </head>
 <body>
-    <h1>D.1.T.H T r a 1 n 1 n g S t r e a m</h1>
+    <!-- Вертикальный заголовок слева -->
+    <h1>D.1.T.H.Tra1n1ng Stream</h1>
     
-    <!-- Блок для режима -->
-    <div class="mode" id="mode">Mode: N/A</div>
+    <!-- Контейнер для статистики -->
+    <div class="stats-container">
+        <!-- Блок для режима -->
+        <div class="mode" id="mode">Mode: N/A</div>
+        <!-- Блоки для статистики -->
+        <div class="stats" id="epoch">Epoch: N/A</div>
+        <div class="stats" id="loss">Loss: N/A</div>
+        <div class="stats" id="meanReward">Mean Reward: N/A</div>
+    </div>
 
     <img id="stream" width="800" alt="Video Stream" />
-    
-    <!-- Блоки для статистики -->
-    <div class="stats" id="epoch">Epoch: N/A</div>
-    <div class="stats" id="loss">Loss: N/A</div>
-    <div class="stats" id="meanReward">Mean Reward: N/A</div>
 </body>
 </html>

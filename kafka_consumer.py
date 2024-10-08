@@ -1,29 +1,28 @@
-# kafka_consumer.py
-
-import base64
-import cv2
 import numpy as np
+import json
 from confluent_kafka import Consumer, KafkaError
 import logging
-import queue
-import time
 import requests
+import time
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Создание очереди для хранения кадров
-frame_queue = queue.Queue(maxsize=1000)
-
-def send_frame_to_server(frame):
-    """Отправка кадра на Flask сервер по HTTP."""
-    _, buffer = cv2.imencode('.jpg', frame)  # Кодируем в JPEG
-    encoded_image = base64.b64encode(buffer).decode('utf-8')
-
-    # Отправляем POST-запрос на сервер
+def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward):
+    """Отправка кадра и метаданных на Flask сервер по HTTP."""
     try:
-        response = requests.post("http://localhost:5000/update_frame", json={'image': encoded_image})
+        # Отправляем POST-запрос на сервер
+        response = requests.post(
+            "http://localhost:5000/update_frame", 
+            json={
+                'image': image_base64, 
+                'epoch': epoch, 
+                'loss': loss, 
+                'mode': mode, 
+                'meanReward': mean_reward
+            }
+        )
         if response.status_code == 200:
             logger.info("Frame sent successfully.")
         else:
@@ -32,7 +31,7 @@ def send_frame_to_server(frame):
         logger.error(f"Error sending frame: {e}")
 
 def consume_kafka_messages():
-    """Функция для потребления сообщений из Kafka топика 'doom_screen'."""
+    """Потребление сообщений из Kafka топика 'doom_screen'."""
     consumer_config = {
         'bootstrap.servers': '192.168.3.2:9092',
         'group.id': 'flask-consumer-group',
@@ -56,23 +55,26 @@ def consume_kafka_messages():
                     logger.error(f"Kafka Error: {msg.error()}")
                     break
 
-            image_data = msg.value()
-            logger.debug(f"Received message of size: {len(image_data)} bytes.")
+            # Декодируем JSON сообщение
             try:
-                frame = np.frombuffer(image_data, np.uint8).reshape(480, 640, 3)
-                if frame is not None:
-                    send_frame_to_server(frame)
-                    logger.info("Frame decoded and updated successfully.")
-                else:
-                    logger.warning("Failed to decode frame.")
+                message_data = json.loads(msg.value().decode('utf-8'))
+                image_base64 = message_data.get('image')
+                epoch = message_data.get('epoch', 'Undefined')
+                loss = message_data.get('loss', 'NaN')
+                mode = message_data.get('mode', 'Unknown')
+                mean_reward = message_data.get('meanReward', 'NaN')
+
+                # Отправляем изображение и метаданные на Flask сервер
+                send_frame_to_server(image_base64, epoch, loss, mode, mean_reward)
+                logger.info("Frame and metadata sent successfully.")
             except Exception as decode_error:
-                logger.error(f"Error decoding frame: {decode_error}")
+                logger.error(f"Error decoding message: {decode_error}")
 
         except Exception as e:
             logger.error(f"Error in consume_kafka_messages: {e}")
             logger.info("Retrying connection to Kafka in 5 seconds...")
             time.sleep(5)
-    
+
     consumer.close()
     logger.info("Kafka consumer closed.")
 

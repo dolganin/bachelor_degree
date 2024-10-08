@@ -24,8 +24,13 @@ def update_frame():
         return jsonify({'error': 'No image provided'}), 400
 
     image = data['image']
+    loss = round(data['loss'], 2)
+    epoch = data['epoch']
+    meanReward = round(data['meanReward'], 2)
+    mode = data['mode']
+
     # Отправка изображения через WebSocket
-    socketio.emit('new_frame', {'image': image, 'loss': 'NaN', 'epoch': "Undefined", 'meanReward': 'NaN'})
+    socketio.emit('new_frame', {'image': image, 'loss': loss, 'epoch': epoch, 'meanReward': meanReward, 'mode': mode})
     logger.debug("Frame received and sent to client.")
     
     return jsonify({'status': 'success'}), 200
