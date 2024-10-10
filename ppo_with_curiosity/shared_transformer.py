@@ -1,14 +1,9 @@
-import torch
 import torch.nn as nn
+import torch
 
-class DuelQNet(nn.Module):
-    """
-    Dueling Deep Q-Network (Duel DQN) using a Vision Transformer (ViT) architecture.
-    """
-
+class SharedTransformer(nn.Module):
     def __init__(
         self,
-        available_actions_count: int,
         image_channels: int = 1,
         image_size: int = 84,
         patch_size: int = 7,
@@ -18,14 +13,14 @@ class DuelQNet(nn.Module):
         mlp_dim: int = 256,
         dropout: float = 0.1
     ) -> None:
-        super(DuelQNet, self).__init__()
+        super(SharedTransformer, self).__init__()
         
         assert image_size % patch_size == 0, "Image size must be divisible by patch size."
         self.patch_size = patch_size
-        self.num_patches = 24
+        self.num_patches = (image_size // patch_size) ** 2
         self.embedding_dim = embedding_dim
 
-        # Patch Embedding: Преобразуем изображение в патчи и создаем эмбеддинги для каждого патча
+        # Patch Embedding
         self.patch_embed = nn.Conv2d(
             in_channels=image_channels,
             out_channels=embedding_dim,
@@ -33,11 +28,11 @@ class DuelQNet(nn.Module):
             stride=patch_size
         )
         
-        # Позиционное кодирование
+        # Positional Encoding
         self.positional_encoding = nn.Parameter(torch.zeros(1, self.num_patches, embedding_dim))
         nn.init.trunc_normal_(self.positional_encoding, std=0.02)
 
-        # Трансформер
+        # Transformer
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=embedding_dim,
             nhead=num_heads,
@@ -47,23 +42,7 @@ class DuelQNet(nn.Module):
         )
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
 
-        # Линейные слои для расчёта State Value и Advantage
-        self.state_fc = nn.Sequential(
-            nn.Linear(embedding_dim, 64),  # Используем полный embedding_dim
-            nn.ReLU(),
-            nn.Linear(64, 1)
-        )
-
-        self.advantage_fc = nn.Sequential(
-            nn.Linear(embedding_dim, 64),  # Используем полный embedding_dim
-            nn.ReLU(),
-            nn.Linear(64, available_actions_count)
-        )
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass через трансформер с раздельной обработкой для State Value и Advantage.
-        """
         batch_size = x.size(0)
 
         x = self.patch_embed(x)  # Shape: (batch_size, embedding_dim, num_patches_sqrt, num_patches_sqrt)
@@ -74,16 +53,9 @@ class DuelQNet(nn.Module):
 
         x = x.transpose(0, 1)  # Shape: (num_patches, batch_size, embedding_dim)
 
-        # Пропускаем через трансформер
+        # Pass through transformer
         x = self.transformer_encoder(x)  # Shape: (num_patches, batch_size, embedding_dim)
 
         x = x.mean(dim=0)  # Shape: (batch_size, embedding_dim)
 
-        state_value = self.state_fc(x).reshape(-1, 1)  # Используем все признаки для state_value
-
-        advantage_values = self.advantage_fc(x)  # Используем все признаки для advantage_values
-
-        # Финальная сборка Q-значений
-        q_values = state_value + (advantage_values - advantage_values.mean(dim=1, keepdim=True))
-
-        return q_values
+        return x

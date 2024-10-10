@@ -2,65 +2,17 @@ from time import time
 from torch.nn import Module
 from torch import save
 from torch import tensor
-from itertools import product
-from broker_kafka import publish_data
+from server_consumer.broker_kafka import publish_data
 
 import numpy as np
-import torchvision.transforms as transforms
 from tqdm import trange
 from vizdoom import DoomGame
 from typing import Tuple
+from preprocessing import preprocess
+from q_learning.test import test
 
 
-
-def preprocess(img: list, resolution: tuple) -> tensor:
-    """Down samples image to resolution"""
-
-    transformer = transforms.Compose(
-        [   transforms.ToTensor(),
-            transforms.Resize(tuple(resolution))
-            ])
-    img = transformer(img)
-    return img
-
-
-def test(game, writter, epoch, agent: Module, test_episodes_per_epoch, frame_repeat, resolution: tuple = (30, 45), actions: list = None) -> None:
-
-    """Runs a test_episodes_per_epoch episodes and prints the result"""
-    print("\nTesting...")
-    test_scores = []
-    for _ in trange(test_episodes_per_epoch, leave=False):
-        game.new_episode()
-        while not game.is_episode_finished():
-            state = preprocess(game.get_state().screen_buffer, resolution=resolution)
-
-            temporal_state = np.array(game.get_state().screen_buffer, dtype=np.uint8)
-            new_state = np.repeat(temporal_state[:, :, np.newaxis], 3, axis=2)
-
-
-            best_action_index = agent.get_action(state)
-
-            game.make_action(actions[best_action_index], frame_repeat)
-
-            publish_data(array=new_state, epoch=epoch, loss=float("NaN"), mean_reward=np.array(test_scores).mean(), mode="Test")
-        r = game.get_total_reward()
-        test_scores.append(r)
-
-    test_scores = np.array(test_scores)
-    print(
-        "Results: mean: {:.1f} +/- {:.1f},".format(
-            test_scores.mean(), test_scores.std()
-        ),
-        "min: %.1f" % test_scores.min(),
-        "max: %.1f" % test_scores.max(),
-    )
-    writter.add_scalar('Test score minimum', test_scores.min(), epoch)
-    writter.add_scalar('Test score maximum', test_scores.max(), epoch)
-    writter.add_scalar('Test score mean', test_scores.mean(), epoch)
-    writter.add_scalar('Test score std', test_scores.std(), epoch)
-
-
-def run(game, writter, agent: Module, actions: list = None, num_epochs: int = 10, frame_repeat: int = 20,\
+def train(game, writter, agent: Module, actions: list = None, num_epochs: int = 10, frame_repeat: int = 20,\
          resolution: tuple = [30, 45], save_model: bool = False, test_episodes_per_epoch: int = 1000,\
               model_savefile: str = None, steps_per_epoch=2000, DEVICE: str="cuda:0") -> Tuple[DoomGame, Module]:
     """
@@ -91,7 +43,7 @@ def run(game, writter, agent: Module, actions: list = None, num_epochs: int = 10
             if not done:
                 next_state = preprocess(game.get_state().screen_buffer, resolution=resolution)
             else:
-                next_state = np.zeros((1, 30, 45)).astype(np.float32)
+                next_state = np.zeros((1, resolution[0], resolution[1])).astype(np.float32)
 
             agent.append_memory(state, action, reward, next_state, done)
 

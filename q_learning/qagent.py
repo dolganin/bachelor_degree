@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
-from q_transformer import DuelQNet
+from q_learning.q_transformer import DuelQNet
 import numpy as np
 from collections import deque
 import random
