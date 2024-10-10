@@ -182,6 +182,3 @@ def train():
             torch.save(policy_net.state_dict(), f"policy_net_episode_{episode+1}.pth")
             torch.save(value_net.state_dict(), f"value_net_episode_{episode+1}.pth")
             torch.save(forward_model.state_dict(), f"forward_model_episode_{episode+1}.pth")
-
-if __name__ == "__main__":
-    train()
