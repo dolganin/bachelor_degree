@@ -5,11 +5,39 @@ from preprocessing import preprocess
 import numpy as np
 from server_consumer.broker_kafka import publish_data
 import torch
+from video_logger import VideoLogger
+from torch.nn import Module
 
 
 class QTrainer(TrainerRL):
+    def __init__(self, env, agent: Module, video_logger: VideoLogger=None, tensor_logger=None,  
+                 device: str = "cpu", resolution: tuple = (30, 45), frame_repeat: int = 45, 
+                 steps_per_epoch: int = 1000, actions: list = None, test_episodes_per_epoch: int = 1000, model_savefile: str = None) -> None:
+        """
+        Инициализация тренера.
+
+        Args:
+            env: Среда для обучения агента.
+            agent: Объект агента, реализующий логику действий и обновления.
+            config: Словарь или объект с конфигурациями для тренера.
+        """
+        super(QTrainer, self).__init__()
+        self.env = env  # Среда, с которой агент взаимодействует
+        self.agent = agent  # Агент, выполняющий действия и обучающийся
+        self.current_step = 0  # Шаг обучения
+        self.total_rewards = []  # Для хранения суммарных наград по эпизодам
+        self.video_logger = video_logger
+        self.tensor_logger = tensor_logger
+        self.device = device
+        self.resolution = resolution
+        self.frame_repeat = frame_repeat
+        self.steps_per_epoch = steps_per_epoch
+        self.actions = actions
+        self.test_episodes_per_epoch = test_episodes_per_epoch
+        self.model_savefile = model_savefile if model_savefile is not None else "model.pth"
+
     
-    def train(self, episode: int, steps_per_epoch: int = 1000):
+    def train(self, episode: int):
         """
         Основной цикл обучения агента для одного эпизода.
         
@@ -36,6 +64,8 @@ class QTrainer(TrainerRL):
             
             temporal_state = np.array(self.env.get_state().screen_buffer, dtype=np.uint8)
             new_state = np.repeat(temporal_state[:, :, np.newaxis], 3, axis=2)
+            
+            self.video_logger.add_frame(new_state)# Добавляем картинку в лог
 
             action = self.agent.get_action(state)
             if self.actions is None:
@@ -89,5 +119,5 @@ class QTrainer(TrainerRL):
         torch.save(self.agent.q_net.state_dict(), model_savefile)
     
     def load_model(self, model_savefile: str):
-         checkpoint = torch.load(model_savefile, location=self.device)
+         checkpoint = torch.load(model_savefile, map_location=self.device)
          self.agent.q_net.load_state_dict(checkpoint["model_state_dict"])

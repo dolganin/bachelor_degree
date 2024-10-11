@@ -5,9 +5,9 @@ from q_learning.q_transformer import DuelQNet
 import numpy as np
 from collections import deque
 import random
+from base.agent_base import RLAgent
 
-
-class DQNAgent:
+class DQNAgent(RLAgent):
     def __init__(
         self,
         action_size: float,

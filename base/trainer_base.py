@@ -5,14 +5,11 @@ from preprocessing import preprocess
 from typing import List
 import numpy as np
 from server_consumer.broker_kafka import publish_data
-from torch.nn import Module
-from video_logger import VideoLogger
 
 
 class TrainerRL(ABC):
-    def __init__(self, env, agent: Module, video_logger: VideoLogger=None, tensor_logger=None,  
-                 device: str = "cpu", resolution: tuple = (30, 45), frame_repeat: int = 45, 
-                 steps_per_epoch: int = 1000, actions: list = None, test_episodes_per_epoch: int = 1000) -> None:
+    @abstractmethod
+    def __init__(self) -> None:
         """
         Инициализация тренера.
 
@@ -21,18 +18,7 @@ class TrainerRL(ABC):
             agent: Объект агента, реализующий логику действий и обновления.
             config: Словарь или объект с конфигурациями для тренера.
         """
-        self.env = env  # Среда, с которой агент взаимодействует
-        self.agent = agent  # Агент, выполняющий действия и обучающийся
-        self.current_step = 0  # Шаг обучения
-        self.total_rewards = []  # Для хранения суммарных наград по эпизодам
-        self.video_logger = video_logger
-        self.tensor_logger = tensor_logger
-        self.device = device
-        self.resolution = resolution
-        self.frame_repeat = frame_repeat
-        self.steps_per_epoch = steps_per_epoch
-        self.actions = actions
-        self.test_episodes_per_epoch = test_episodes_per_epoch
+        pass
 
     @abstractmethod
     def train(self, epoch: int = 0, steps_per_epoch: int = 1000):
@@ -119,6 +105,7 @@ class TrainerRL(ABC):
             num_episodes: Количество эпизодов для обучения.
             evaluate_every: Частота оценок после определенного количества эпизодов.
         """
+        max_reward = 0.0
         for epoch in range(epochs):
             start_time = time()
             test_scores = []
@@ -142,6 +129,15 @@ class TrainerRL(ABC):
                              max_reward=test_scores.max(),
                              mean_loss=loss_lst.mean())
             print("Total elapsed time: %.2f minutes" % ((time() - start_time) / 60.0))
+            
+            if reward > max_reward:
+                max_reward = reward
+                self.video_logger.save()
+                print(f"Saving the network weights to{self.model_savefile}")
+                self.save_model()
+            else:
+                self.video_logger.clear()
+
         
         self.env.close()
 

@@ -94,7 +94,7 @@ def train():
     # Перемещение моделей на доступное устройство (GPU или CPU)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     policy_net.to(device)
-    value_net.to(device)
+    value_net.to(device) й
     forward_model.to(device)
     
     for episode in range(num_episodes):

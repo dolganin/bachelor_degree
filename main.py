@@ -86,32 +86,7 @@ def main() -> None:
         )
 
         print("======================================")
-        print("Training finished. It's time to watch!")
-
-    # Reinitialize the game with window visible
-    if test:
-        game.close()
-        game.set_window_visible(True)
-        game.set_mode(vzd.Mode.ASYNC_PLAYER)
-        game.init()
-        for _ in range(episodes_to_watch):
-            game.new_episode()
-            while not game.is_episode_finished():
-                state = preprocess(game.get_state().screen_buffer, resolution=resolution)
-                best_action_index = agent.get_action(state)
-
-                # Instead of make_action(a, frame_repeat) in order to make the animation smooth
-                game.set_action(actions[best_action_index])
-                for _ in range(frame_repeat):
-                    game.advance_action()
-
-            # Sleep between episodes
-            sleep(1.0)
-            score = game.get_total_reward()
-            print("Total score: ", score)
-
-    
-
+        print("Training finished!")
 
 if __name__ == "__main__":
    main()

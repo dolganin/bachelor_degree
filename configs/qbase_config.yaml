@@ -14,7 +14,7 @@ env_parameters:
   episodes_to_watch: 10
 
 meta_parameters:
-  out_model_file: "weights/transformer_defend_the_line.pth"
+  out_video_file: "gameplay/best_defend_the_line.mp4"
   save_model: True
   load_model: False
   skip_learning: False

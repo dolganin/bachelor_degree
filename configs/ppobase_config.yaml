@@ -1,0 +1,29 @@
+learning_parameters:
+  learning_rate: 0.003
+  discount_factor: 0.96
+  train_epochs: 20
+  replay_memory_size: 100000
+  batch_size: 128
+  test_episodes_per_epoch: 100
+  frame_repeat: 96
+  learning_steps_per_epoch: 50
+  weight_decay: 0.007
+  lambda_intrinsic: 0.1
+  entropy_coef: 0.01
+  clip_epsiolon: 0.2
+  hidden_dim: 128
+
+env_parameters:
+  resolution: [120, 130]
+  episodes_to_watch: 10
+
+meta_parameters:
+  out_video_file: "gameplay/best_defend_the_line.mp4"
+  save_model: True
+  load_model: False
+  skip_learning: False
+
+doom_cfg_path: "scenarios/defend_the_line.cfg"
+
+
+  
