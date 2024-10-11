@@ -6,7 +6,7 @@ learning_parameters:
   batch_size: 128
   test_episodes_per_epoch: 100
   frame_repeat: 96
-  learning_steps_per_epoch: 5000
+  learning_steps_per_epoch: 50
   weight_decay: 0.007
 
 env_parameters:
@@ -14,12 +14,12 @@ env_parameters:
   episodes_to_watch: 10
 
 meta_parameters:
-  out_model_file: "weights/transformer_map10.pth"
+  out_model_file: "weights/transformer_defend_the_line.pth"
   save_model: True
   load_model: False
   skip_learning: False
 
-doom_cfg_path: "scenarios/basic.cfg"
+doom_cfg_path: "scenarios/defend_the_line.cfg"
 
 
   

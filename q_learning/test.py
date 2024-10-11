@@ -6,7 +6,7 @@ from tqdm import trange
 from preprocessing import preprocess
 
 
-def test(game, writter, epoch, agent: Module, test_episodes_per_epoch, frame_repeat, resolution: tuple = (30, 45), actions: list = None) -> None:
+def test(game, epoch, agent: Module, test_episodes_per_epoch: int = 1000, frame_repeat: int = 45, resolution: tuple = (30, 45), actions: list = None) -> None:
 
     """Runs a test_episodes_per_epoch episodes and prints the result"""
     print("\nTesting...")
@@ -29,14 +29,3 @@ def test(game, writter, epoch, agent: Module, test_episodes_per_epoch, frame_rep
         test_scores.append(r)
 
     test_scores = np.array(test_scores)
-    print(
-        "Results: mean: {:.1f} +/- {:.1f},".format(
-            test_scores.mean(), test_scores.std()
-        ),
-        "min: %.1f" % test_scores.min(),
-        "max: %.1f" % test_scores.max(),
-    )
-    writter.add_scalar('Test score minimum', test_scores.min(), epoch)
-    writter.add_scalar('Test score maximum', test_scores.max(), epoch)
-    writter.add_scalar('Test score mean', test_scores.mean(), epoch)
-    writter.add_scalar('Test score std', test_scores.std(), epoch)

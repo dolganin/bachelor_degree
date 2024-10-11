@@ -77,8 +77,8 @@ def train(game, writter, agent: Module, actions: list = None, num_epochs: int = 
         writter.add_scalar('Train score mean', train_scores.mean(), epoch)
         writter.add_scalar('Train score std', train_scores.std(), epoch)
                 
-
-        test(game, writter, epoch, agent, test_episodes_per_epoch=test_episodes_per_epoch, frame_repeat=frame_repeat, resolution=resolution, actions = actions)
+        print(test_episodes_per_epoch)
+        test(game, epoch, agent, test_episodes_per_epoch=test_episodes_per_epoch, frame_repeat=frame_repeat, resolution=resolution, actions = actions)
         if save_model:
             print("Saving the network weights to:", model_savefile)
             save(agent.q_net, model_savefile)

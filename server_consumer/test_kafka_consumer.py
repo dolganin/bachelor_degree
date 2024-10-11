@@ -76,7 +76,7 @@ def consume_kafka_messages():
 
     while True:
         try:
-            msg = consumer.poll(timeout=0.33)
+            msg = consumer.poll(timeout=0.5)
             if msg is None:
                 logger.info("Received None message. Sending default black image.")
                 image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
