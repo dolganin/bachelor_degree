@@ -5,6 +5,7 @@ from ppo_with_curiosity.ppo_trainer import PPOTrainer
 from yaml_reader import YAMLParser
 from itertools import product
 from q_learning.qtrainer import QTrainer
+from base.agent_base import AgentEvaluator
 
 from argparse import ArgumentParser
 from torch.cuda import is_available
@@ -86,17 +87,6 @@ def main() -> None:
 
     vlogger = VideoLogger(filepath=out_video_file)
 
-    # trainer = QTrainer(agent=agent, 
-    #                    env=game, 
-    #                    tensor_logger=writter, 
-    #                    device=DEVICE,
-    #                    steps_per_epoch=learning_steps_per_epoch,
-    #                    resolution=resolution,
-    #                    frame_repeat=frame_repeat,
-    #                    actions=actions,
-    #                    test_episodes_per_epoch=test_episodes_per_epoch,
-    #                    video_logger=vlogger
-    #                    )
     trainer = PPOTrainer(agent=agent,env=game, 
                          tensor_logger=writter, 
                          device=DEVICE, 
@@ -106,6 +96,8 @@ def main() -> None:
                          actions=actions, 
                          test_episodes_per_epoch=test_episodes_per_epoch, 
                          video_logger=vlogger)
+
+    evaluator = AgentEvaluator(window_size=100)
     
     trainer.run(epochs=train_epochs)
 
