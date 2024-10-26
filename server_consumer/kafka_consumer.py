@@ -4,15 +4,39 @@ from confluent_kafka import Consumer, KafkaError
 import logging
 import requests
 import time
+from PIL import Image, ImageDraw, ImageFont
+import io
+import base64
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+def create_black_image_with_text(text):
+    """Создание черного изображения с заданным текстом."""
+    img = Image.new('RGB', (640, 480), color=(0, 0, 0))
+    d = ImageDraw.Draw(img)
+
+    try:
+        font = ImageFont.truetype("static/fonts/amazdoomleft.ttf", 52)
+    except IOError:
+        font = ImageFont.load_default()
+
+    text_bbox = d.textbbox((0, 0), text, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    text_height = text_bbox[3] - text_bbox[1]
+    x = (img.width - text_width) // 2
+    y = (img.height - text_height) // 2
+
+    d.text((x, y), text, fill=(255, 255, 255), font=font)
+
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode('utf-8')
+
 def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward):
     """Отправка кадра и метаданных на Flask сервер по HTTP."""
     try:
-        # Отправляем POST-запрос на сервер
         response = requests.post(
             "http://localhost:5000/update_frame", 
             json={
@@ -42,9 +66,20 @@ def consume_kafka_messages():
     consumer.subscribe(['doom_screen'])
     logger.info("Kafka consumer subscribed to 'doom_screen'")
 
+    last_message_time = time.time()
+
     while True:
         try:
-            msg = consumer.poll(timeout=0.33)
+            msg = consumer.poll(timeout=0.5)
+            current_time = time.time()
+
+            # Проверяем, прошло ли более 2 секунд с последнего сообщения
+            if current_time - last_message_time > 2:
+                logger.info("No messages received for 2 seconds. Sending default black image.")
+                image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
+                send_frame_to_server(image_base64, 'Undefined', 'NaN', 'Undefined', 'NaN')
+                last_message_time = current_time  # Сброс времени после отправки заглушки
+
             if msg is None:
                 continue
 
@@ -55,7 +90,6 @@ def consume_kafka_messages():
                     logger.error(f"Kafka Error: {msg.error()}")
                     break
 
-            # Декодируем JSON сообщение
             try:
                 message_data = json.loads(msg.value().decode('utf-8'))
                 image_base64 = message_data.get('image')
@@ -64,8 +98,22 @@ def consume_kafka_messages():
                 mode = message_data.get('mode', 'Unknown')
                 mean_reward = message_data.get('meanReward', 'NaN')
 
-                # Отправляем изображение и метаданные на Flask сервер
+                # Проверка на пустое изображение
+                if not image_base64:
+                    logger.info("Received empty image. Sending default black image.")
+                    image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
+                else:
+                    try:
+                        image_data = base64.b64decode(image_base64)
+                        img = Image.open(io.BytesIO(image_data))
+                        img.verify()
+                    except Exception as img_error:
+                        logger.warning("Received an invalid image. Sending default black image.")
+                        image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
+
+                # Отправляем изображение и метаданные на сервер
                 send_frame_to_server(image_base64, epoch, loss, mode, mean_reward)
+                last_message_time = time.time()  # Обновляем время последнего успешного сообщения
                 logger.info("Frame and metadata sent successfully.")
             except Exception as decode_error:
                 logger.error(f"Error decoding message: {decode_error}")
