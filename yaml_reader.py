@@ -33,7 +33,7 @@ def constants(yml: dict = None) -> List:
         test_episodes_per_epoch = yml["learning_parameters"]["test_episodes_per_epoch"]
         lambda_intrinsic = yml["learning_parameters"]["lambda_intrinsic"]
         entropy_coef = yml["learning_parameters"]["entropy_coef"]
-        clip_epsiolon = yml["learning_parameters"]["clip_epsiolon"]
+        clip_epsilon = yml["learning_parameters"]["clip_epsiolon"]
         hidden_dim = yml["learning_parameters"]["hidden_dim"]
 
 

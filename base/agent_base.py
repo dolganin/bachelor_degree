@@ -58,26 +58,6 @@ class RLAgent(ABC):
         pass
 
     @abstractmethod
-    def save_model(self, path: str):
-        """
-        Сохранение модели агента на диск.
-
-        Args:
-            path (str): Путь для сохранения модели.
-        """
-        pass
-
-    @abstractmethod
-    def load_model(self, path: str):
-        """
-        Загрузка сохранённой модели агента с диска.
-
-        Args:
-            path (str): Путь для загрузки модели.
-        """
-        pass
-
-    @abstractmethod
     def update_target_net(self):
         """
         Обновление целевой сети, если это необходимо.

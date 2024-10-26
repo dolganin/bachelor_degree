@@ -14,37 +14,29 @@ logger = logging.getLogger(__name__)
 
 def create_black_image_with_text(text):
     """Создание черного изображения с заданным текстом."""
-    # Создаем черное изображение размером 640x480
     img = Image.new('RGB', (640, 480), color=(0, 0, 0))
     d = ImageDraw.Draw(img)
 
-    # Задаем шрифт и размер
     try:
-        font = ImageFont.truetype("static/fonts/amazdoomleft.ttf", 52)  # Путь к шрифту Arial
+        font = ImageFont.truetype("static/fonts/amazdoomleft.ttf", 52)
     except IOError:
-        font = ImageFont.load_default()  # Используем стандартный шрифт
+        font = ImageFont.load_default()
 
-    # Вычисляем размер текста для центрирования
-    text_bbox = d.textbbox((0, 0), text, font=font)  # Получаем границы текста
-    text_width = text_bbox[2] - text_bbox[0]  # ширина текста
-    text_height = text_bbox[3] - text_bbox[1]  # высота текста
+    text_bbox = d.textbbox((0, 0), text, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    text_height = text_bbox[3] - text_bbox[1]
     x = (img.width - text_width) // 2
     y = (img.height - text_height) // 2
 
-    # Рисуем текст на изображении
     d.text((x, y), text, fill=(255, 255, 255), font=font)
-    
-    # Преобразуем изображение в base64
+
     buffered = io.BytesIO()
     img.save(buffered, format="PNG")
-    img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-
-    return img_base64
+    return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
 def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward):
     """Отправка кадра и метаданных на Flask сервер по HTTP."""
     try:
-        # Отправляем POST-запрос на сервер
         response = requests.post(
             "http://localhost:5000/update_frame", 
             json={
@@ -74,13 +66,21 @@ def consume_kafka_messages():
     consumer.subscribe(['doom_screen'])
     logger.info("Kafka consumer subscribed to 'doom_screen'")
 
+    last_message_time = time.time()
+
     while True:
         try:
             msg = consumer.poll(timeout=0.5)
-            if msg is None:
-                logger.info("Received None message. Sending default black image.")
+            current_time = time.time()
+
+            # Проверяем, прошло ли более 2 секунд с последнего сообщения
+            if current_time - last_message_time > 2:
+                logger.info("No messages received for 2 seconds. Sending default black image.")
                 image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
                 send_frame_to_server(image_base64, 'Undefined', 'NaN', 'Undefined', 'NaN')
+                last_message_time = current_time  # Сброс времени после отправки заглушки
+
+            if msg is None:
                 continue
 
             if msg.error():
@@ -90,7 +90,6 @@ def consume_kafka_messages():
                     logger.error(f"Kafka Error: {msg.error()}")
                     break
 
-            # Декодируем JSON сообщение
             try:
                 message_data = json.loads(msg.value().decode('utf-8'))
                 image_base64 = message_data.get('image')
@@ -99,23 +98,22 @@ def consume_kafka_messages():
                 mode = message_data.get('mode', 'Unknown')
                 mean_reward = message_data.get('meanReward', 'NaN')
 
-                # Проверяем, если изображение пустое или некорректное
+                # Проверка на пустое изображение
                 if not image_base64:
                     logger.info("Received empty image. Sending default black image.")
                     image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
                 else:
-                    # Дополнительно можно добавить проверку корректности изображения (например, базовую проверку на формат)
                     try:
-                        # Пробуем декодировать базу64 в изображение
                         image_data = base64.b64decode(image_base64)
                         img = Image.open(io.BytesIO(image_data))
-                        img.verify()  # Проверка, что изображение корректное
+                        img.verify()
                     except Exception as img_error:
                         logger.warning("Received an invalid image. Sending default black image.")
                         image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
 
-                # Отправляем изображение и метаданные на Flask сервер
+                # Отправляем изображение и метаданные на сервер
                 send_frame_to_server(image_base64, epoch, loss, mode, mean_reward)
+                last_message_time = time.time()  # Обновляем время последнего успешного сообщения
                 logger.info("Frame and metadata sent successfully.")
             except Exception as decode_error:
                 logger.error(f"Error decoding message: {decode_error}")

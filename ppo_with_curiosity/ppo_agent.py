@@ -46,13 +46,17 @@ class PPOAgent(RLAgent):
             clip_epsilon (float, optional): Коэффициент для ограничения обновлений в PPO. По умолчанию 0.2.
             hidden_dim (int, optional): Размер скрытого слоя для Forward Model. По умолчанию 128.
         """
-        super(PPOAgent, self).__init__(action_size, memory_size, batch_size, 
-                                       discount_factor, lr, device, model_savefile)
         
         self.lambda_intrinsic = lambda_intrinsic
         self.entropy_coef = entropy_coef
         self.clip_epsilon = clip_epsilon
         self.hidden_dim = hidden_dim
+        self.action_size = action_size
+        self.device = device
+        self.memory_size = memory_size
+        self.batch_size = batch_size
+        self.lr = lr
+        self.discount_factor = discount_factor
         
         # Инициализация моделей
         self.shared_transformer = SharedTransformer(
@@ -136,7 +140,7 @@ class PPOAgent(RLAgent):
         intrinsic_reward = (predicted_next_state - next_state_tensor).pow(2).mean().item()
         return intrinsic_reward
 
-    def train(self):
+    def train_agent(self):
         """
         Обучение Policy Network и Value Network на основе собранных данных из буфера памяти.
 

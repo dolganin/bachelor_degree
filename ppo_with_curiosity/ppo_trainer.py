@@ -7,6 +7,8 @@ from tqdm import trange
 from base.trainer_base import TrainerRL  # Предполагается, что TrainerRL определён в base/trainer_base.py
 from preprocessing import preprocess
 from server_consumer.broker_kafka import publish_data
+from video_logger import VideoLogger
+from torch.nn import Module
 
 from ppo_with_curiosity.ppo_agent import PPOAgent  # Импорт PPOAgent из PPO_Agent.py
 
@@ -177,4 +179,7 @@ class PPOTrainer(TrainerRL):
         self.forward_optimizer.load_state_dict(checkpoint['forward_optimizer_state_dict'])
         
         print(f"Models and optimizers loaded from {path}.pth")
+
+    def get_weights(self):
+        return self.policy_net.state_dict, self.value_net.state_dict, self.forwrd_model.state_dict
 

@@ -5,7 +5,7 @@ from ppo_with_curiosity.ppo_trainer import PPOTrainer
 from yaml_reader import YAMLParser
 from itertools import product
 from q_learning.qtrainer import QTrainer
-from base.agent_base import AgentEvaluator
+from base.agent_evaluator import AgentEvaluator
 
 from argparse import ArgumentParser
 from torch.cuda import is_available
@@ -24,7 +24,7 @@ def main() -> None:
 
     parser = ArgumentParser(description='Bachelor Degree Script')
 
-    parser.add_argument('-y', '--yaml', type=str, help='A path to yaml file', default="base_config")
+    parser.add_argument('-y', '--yaml', type=str, help='A path to yaml file', default="ppobase_config")
     parser.add_argument('-r', '--runname', type=str, help='A path to name of folder for run', default="runs/run_0")
     parser.add_argument('-w', '--weights', type=str, help='A path to weights of model', default=None)
     parser.add_argument('-d', '--debug', type=bool, help='A flag to debug mode', default=False)
@@ -70,24 +70,24 @@ def main() -> None:
         weight_decay=weight_decay,
     )
             # Инициализация агента
-    agent = PPOAgent(
-            action_size=n,
-            memory_size=replay_memory_size,
-            batch_size=batch_size,
-            discount_factor=discount_factor,
-            lr=learning_rate,
-            device=DEVICE,
-            model_savefile=weights,
-            lambda_intrinsic=lambda_intrinsic,
-            entropy_coef=entropy_coef,
-            clip_epsilon=clip_epsilon,
-            hidden_dim=hidden_dim
-        )
+    # agent = PPOAgent(
+    #         action_size=n,
+    #         memory_size=replay_memory_size,
+    #         batch_size=batch_size,
+    #         discount_factor=discount_factor,
+    #         lr=learning_rate,
+    #         device=DEVICE,
+    #         model_savefile=weights,
+    #         lambda_intrinsic=lambda_intrinsic,
+    #         entropy_coef=entropy_coef,
+    #         clip_epsilon=clip_epsilon,
+    #         hidden_dim=hidden_dim
+    #     )
         
 
     vlogger = VideoLogger(filepath=out_video_file)
 
-    trainer = PPOTrainer(agent=agent,env=game, 
+    trainer = QTrainer(agent=agent,env=game, 
                          tensor_logger=writter, 
                          device=DEVICE, 
                          steps_per_epoch=learning_steps_per_epoch, 

@@ -67,7 +67,7 @@ class DQNAgent(RLAgent):
     def append_memory(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
 
-    def train(self):
+    def train_agent(self):
 
         batch = random.sample(self.memory, self.batch_size)
         batch = np.array(batch, dtype=object)
@@ -81,7 +81,7 @@ class DQNAgent(RLAgent):
 
         row_idx = np.arange(self.batch_size)  # used for indexing the batch
 
-        # value of the next states with double q learning
+        # value of the next states with deep q learning
         # see https://arxiv.org/abs/1509.06461 for more information on double q learning
         with torch.no_grad():
             next_states = torch.from_numpy(next_states).float().to(self.device)
@@ -110,3 +110,6 @@ class DQNAgent(RLAgent):
             self.epsilon = self.epsilon_min
 
         return td_error
+    
+        
+    

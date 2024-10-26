@@ -1,3 +1,5 @@
+from collections import deque
+
 class AgentEvaluator:
     def __init__(self, window_size=100):
         self.window_size = window_size  # Длина скользящего окна для минимальных и максимальных значений
