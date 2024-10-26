@@ -1,21 +1,21 @@
-from create_game import create_simple_game
-from q_learning.qagent import DQNAgent
+from utilities.create_game import create_simple_game
 from ppo_with_curiosity.ppo_agent import PPOAgent
 from ppo_with_curiosity.ppo_trainer import PPOTrainer
-from itertools import product
-from q_learning.qtrainer import QTrainer
 from base.agent_evaluator import AgentEvaluator
-
-from argparse import ArgumentParser
-from torch.cuda import is_available
+from utilities.video_logger import VideoLogger
 from utilities.yaml_reader import YAMLParser, constants
-from torch.utils.tensorboard import SummaryWriter
-
 
 import warnings
 import os
 import logging
-from video_logger import VideoLogger
+from argparse import ArgumentParser
+from itertools import product
+
+from torch.cuda import is_available
+from torch.utils.tensorboard import SummaryWriter
+
+
+
 
 
 def main() -> None:
@@ -57,36 +57,25 @@ def main() -> None:
     actions = [list(a) for a in product([0, 1], repeat=n)]
 
     # Initialize our agent with the set parameters
-    agent = DQNAgent(
-        len(actions),
-        lr=learning_rate,
-        batch_size=batch_size,
-        memory_size=replay_memory_size,
-        discount_factor=discount_factor,
-        load_model=load_model,
-        model_savefile=weights,
-        device=DEVICE, 
-        weight_decay=weight_decay,
-    )
             # Инициализация агента
-    # agent = PPOAgent(
-    #         action_size=n,
-    #         memory_size=replay_memory_size,
-    #         batch_size=batch_size,
-    #         discount_factor=discount_factor,
-    #         lr=learning_rate,
-    #         device=DEVICE,
-    #         model_savefile=weights,
-    #         lambda_intrinsic=lambda_intrinsic,
-    #         entropy_coef=entropy_coef,
-    #         clip_epsilon=clip_epsilon,
-    #         hidden_dim=hidden_dim
-    #     )
+    agent = PPOAgent(
+            action_size=n,
+            memory_size=replay_memory_size,
+            batch_size=batch_size,
+            discount_factor=discount_factor,
+            lr=learning_rate,
+            device=DEVICE,
+            model_savefile=weights,
+            lambda_intrinsic=lambda_intrinsic,
+            entropy_coef=entropy_coef,
+            clip_epsilon=clip_epsilon,
+            hidden_dim=hidden_dim
+        )
         
 
     vlogger = VideoLogger(filepath=out_video_file)
 
-    trainer = QTrainer(agent=agent,env=game, 
+    trainer = PPOTrainer(agent=agent,env=game, 
                          tensor_logger=writter, 
                          device=DEVICE, 
                          steps_per_epoch=learning_steps_per_epoch, 

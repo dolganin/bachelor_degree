@@ -3,34 +3,42 @@
 import torch
 import numpy as np
 from tqdm import trange
-
-from base.trainer_base import TrainerRL  # Предполагается, что TrainerRL определён в base/trainer_base.py
-from preprocessing import preprocess
-from server_consumer.broker_kafka import publish_data
-from video_logger import VideoLogger
 from torch.nn import Module
-
+from base.trainer_base import TrainerRL  # Предполагается, что TrainerRL определён в base/trainer_base.py
+from utilities.preprocessing import preprocess
+from server_consumer.broker_kafka import publish_data
+from utilities.video_logger import VideoLogger
 from ppo_with_curiosity.ppo_agent import PPOAgent  # Импорт PPOAgent из PPO_Agent.py
-
+from .replay_buffer import ReplayBuffer  # Импортируем ReplayBuffer с затуханием
 
 class PPOTrainer(TrainerRL):
     def __init__(self, env, agent: Module, video_logger: VideoLogger=None, tensor_logger=None,  
                  device: str = "cpu", resolution: tuple = (30, 45), frame_repeat: int = 45, 
-                 steps_per_epoch: int = 1000, actions: list = None, test_episodes_per_epoch: int = 1000, model_savefile: str = None):
+                 steps_per_epoch: int = 1000, actions: list = None, test_episodes_per_epoch: int = 1000, 
+                 model_savefile: str = None, buffer_capacity: int = 10000, buffer_momentum: float = 0.995):
         """
         Инициализация PPOTrainer с настройками для PPO with Curiosity.
 
         Args:
-            env_config (dict): Конфигурация среды.
-            agent_config (dict): Конфигурация агента (сети и оптимизаторы).
-            logger_config (dict): Конфигурация логгера.
-            **kwargs: Дополнительные аргументы.
+            env: Среда, с которой агент взаимодействует
+            agent (Module): Агент, выполняющий действия и обучающийся
+            video_logger (VideoLogger, optional): Логгер для видео.
+            tensor_logger (optional): Логгер для тензорных данных.
+            device (str): Устройство для вычислений, например, "cpu" или "cuda".
+            resolution (tuple): Размер изображения, по умолчанию (30, 45).
+            frame_repeat (int): Параметр повторения кадров, по умолчанию 45.
+            steps_per_epoch (int): Количество шагов за эпизод, по умолчанию 1000.
+            actions (list, optional): Список действий, доступных агенту.
+            test_episodes_per_epoch (int): Количество тестовых эпизодов за эпоху.
+            model_savefile (str, optional): Путь для сохранения модели.
+            buffer_capacity (int): Размер буфера, по умолчанию 10000.
+            buffer_momentum (float): Коэффициент затухания для старых значений, по умолчанию 0.995.
         """
         super(PPOTrainer, self).__init__()
-        self.env = env  # Среда, с которой агент взаимодействует
-        self.agent = agent  # Агент, выполняющий действия и обучающийся
-        self.current_step = 0  # Шаг обучения
-        self.total_rewards = []  # Для хранения суммарных наград по эпизодам
+        self.env = env
+        self.agent = agent
+        self.current_step = 0
+        self.total_rewards = []
         self.video_logger = video_logger
         self.tensor_logger = tensor_logger
         self.device = device
@@ -40,18 +48,13 @@ class PPOTrainer(TrainerRL):
         self.actions = actions
         self.test_episodes_per_epoch = test_episodes_per_epoch
         self.model_savefile = model_savefile if model_savefile is not None else "model.pth"
-
         
+        # Инициализация памяти с заданной емкостью и затуханием
+        self.memory = ReplayBuffer(capacity=buffer_capacity, momentum=buffer_momentum)
+
     def train(self, episode: int, steps_per_epoch: int = 1000):
         """
         Основной цикл обучения агента для одного эпизода с использованием PPO with Curiosity.
-
-        Args:
-            episode (int): Номер текущего эпизода.
-            steps_per_epoch (int, optional): Количество шагов за эпизод. По умолчанию 1000.
-
-        Returns:
-            tuple: Суммарная награда за эпизод и массив значений потерь.
         """
         loss_lst = []
         self.env.new_episode()
@@ -68,14 +71,11 @@ class PPOTrainer(TrainerRL):
             # Логирование видеофрейма
             temporal_state = np.array(raw_state, dtype=np.uint8)
             new_state = np.repeat(temporal_state[:, :, np.newaxis], 3, axis=2)
-            self.video_logger.add_frame(new_state)  # Добавляем картинку в лог
+            self.video_logger.add_frame(new_state)
             
             # Выбор действия
             action, action_log_prob = self.agent.get_action(state)
-            if self.actions is None:
-                selected_action = action
-            else:
-                selected_action = self.actions[action]
+            selected_action = action if self.actions is None else self.actions[action]
             
             # Выполнение действия в среде
             reward = self.env.make_action(selected_action, self.frame_repeat)
@@ -94,17 +94,15 @@ class PPOTrainer(TrainerRL):
             total_intrinsic += intrinsic_reward
             combined_reward = reward + self.agent.lambda_intrinsic * intrinsic_reward
             
-            # Сохранение перехода в буфер
+            # Сохранение перехода в память агента и буфер воспроизведения
             self.agent.append_memory(state, action, reward, combined_reward, action_log_prob, next_state, done)
-            
-            # Добавление в Replay Buffer Forward Model
-            self.agent.forward_replay_buffer.push(state, action, next_state)
+            self.memory.push(state, action, next_state)  # Сохранение в ReplayBuffer
             
             # Логирование данных (например, отправка в Kafka)
             publish_data(
                 array=new_state, 
                 epoch=episode, 
-                loss=0.0,  # Изначально без потерь
+                loss=0.0,
                 mean_reward=np.array(train_scores).mean() if train_scores else 0.0, 
                 mode="Train"
             )
@@ -121,7 +119,7 @@ class PPOTrainer(TrainerRL):
                 total_episode_reward = self.env.get_total_reward()
                 train_scores.append(total_episode_reward)
                 self.env.new_episode()
-                break  # Начать следующий эпизод
+                break
         
         # Обновление Forward Model
         forward_loss = self.agent.update_forward_model()
@@ -138,7 +136,10 @@ class PPOTrainer(TrainerRL):
               f"Policy Loss: {average_policy_loss:.4f}, Value Loss: {average_value_loss:.4f}, "
               f"Forward Loss: {average_forward_loss:.4f}")
         
-        return total_reward, np.array(loss_lst)  # Возвращаем суммарную награду и потери для логирования
+        return total_reward, np.array(loss_lst)
+
+    # Остальные методы остаются неизменными
+
 
     def save_model(self, path: str):
         """
@@ -182,4 +183,5 @@ class PPOTrainer(TrainerRL):
 
     def get_weights(self):
         return self.policy_net.state_dict, self.value_net.state_dict, self.forwrd_model.state_dict
+
 

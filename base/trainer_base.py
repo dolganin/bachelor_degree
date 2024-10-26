@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from time import time
 from tqdm import trange
-from preprocessing import preprocess
+from utilities.preprocessing import preprocess
 from typing import List
 import numpy as np
 from server_consumer.broker_kafka import publish_data
