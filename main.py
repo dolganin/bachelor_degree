@@ -1,27 +1,29 @@
 from create_game import create_simple_game
 from q_learning.qagent import DQNAgent
-from yaml_reader import YAMLParser
+from ppo_with_curiosity.ppo_agent import PPOAgent
+from ppo_with_curiosity.ppo_trainer import PPOTrainer
 from itertools import product
-from q_learning.train import train
+from q_learning.qtrainer import QTrainer
+from base.agent_evaluator import AgentEvaluator
 
-import vizdoom as vzd
-from time import sleep
 from argparse import ArgumentParser
 from torch.cuda import is_available
-from yaml_reader import constants
+from utilities.yaml_reader import YAMLParser, constants
 from torch.utils.tensorboard import SummaryWriter
+
 
 import warnings
 import os
 import logging
-from preprocessing import preprocess
+from video_logger import VideoLogger
 
 
 def main() -> None:
     DEVICE = "cuda:0" if is_available() else "cpu"
 
     parser = ArgumentParser(description='Bachelor Degree Script')
-    parser.add_argument('-y', '--yaml', type=str, help='A path to yaml file', default="base_config")
+
+    parser.add_argument('-y', '--yaml', type=str, help='A path to yaml file', default="ppobase_config")
     parser.add_argument('-r', '--runname', type=str, help='A path to name of folder for run', default="runs/run_0")
     parser.add_argument('-w', '--weights', type=str, help='A path to weights of model', default=None)
     parser.add_argument('-d', '--debug', type=bool, help='A flag to debug mode', default=False)
@@ -43,12 +45,10 @@ def main() -> None:
 
     config = YAMLParser(config=yaml).parse_config()
 
-    learning_rate, batch_size, replay_memory_size,discount_factor, skip_learning, train_epochs, \
-    frame_repeat, learning_steps_per_epoch, load_model, episodes_to_watch, \
-    cfg_path, resolution, test_episodes_per_epoch, save_model, model_savefile, weight_decay = constants(config)
-
-    if weights:
-        model_savefile = weights
+    learning_rate, batch_size, replay_memory_size,discount_factor, train_epochs, \
+    frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch, \
+        save_model, weight_decay, load_model, out_video_file, lambda_intrinsic, entropy_coef,\
+              clip_epsilon, hidden_dim = constants(config)
 
     # Initialize game and actions
     game = create_simple_game(config_file_path=cfg_path)
@@ -64,29 +64,45 @@ def main() -> None:
         memory_size=replay_memory_size,
         discount_factor=discount_factor,
         load_model=load_model,
-        model_savefile=model_savefile,
+        model_savefile=weights,
         device=DEVICE, 
         weight_decay=weight_decay,
     )
+            # Инициализация агента
+    # agent = PPOAgent(
+    #         action_size=n,
+    #         memory_size=replay_memory_size,
+    #         batch_size=batch_size,
+    #         discount_factor=discount_factor,
+    #         lr=learning_rate,
+    #         device=DEVICE,
+    #         model_savefile=weights,
+    #         lambda_intrinsic=lambda_intrinsic,
+    #         entropy_coef=entropy_coef,
+    #         clip_epsilon=clip_epsilon,
+    #         hidden_dim=hidden_dim
+    #     )
+        
 
-    # Run the training for the set number of epochs
-    if not skip_learning:
-        agent, game = train(
-            game,
-            writter,
-            agent,
-            actions,
-            num_epochs=train_epochs,
-            frame_repeat=frame_repeat,
-            steps_per_epoch=learning_steps_per_epoch,
-            resolution=resolution,
-            save_model=save_model,
-            test_episodes_per_epoch=test_episodes_per_epoch,
-            model_savefile=model_savefile,
-        )
+    vlogger = VideoLogger(filepath=out_video_file)
 
-        print("======================================")
-        print("Training finished!")
+    trainer = QTrainer(agent=agent,env=game, 
+                         tensor_logger=writter, 
+                         device=DEVICE, 
+                         steps_per_epoch=learning_steps_per_epoch, 
+                         resolution=resolution, 
+                         frame_repeat=frame_repeat, 
+                         actions=actions, 
+                         test_episodes_per_epoch=test_episodes_per_epoch, 
+                         video_logger=vlogger)
+
+    evaluator = AgentEvaluator(window_size=100)
+    
+    trainer.run(epochs=train_epochs)
+
+    print("======================================")
+    print("Training finished!")
+
 
 if __name__ == "__main__":
    main()
