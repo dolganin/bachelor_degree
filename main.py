@@ -16,8 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 def main() -> None:
     # Выбор устройства
-    #DEVICE = 'cuda:0' if is_available() else 'cpu'
-    DEVICE = 'cpu'
+    DEVICE = 'cuda:0' if is_available() else 'cpu'
     print(f"Device selected for training: {DEVICE}")
 
     parser = ArgumentParser(description='Bachelor Degree Script')
@@ -130,12 +129,12 @@ def main() -> None:
         return
 
     # Запуск обучения
-    try:
-        print("Starting training...")
-        trainer.run(epochs=train_epochs, evaluate_every=learning_steps_per_epoch)
-        print("Training finished!")
-    except Exception as e:
-        print(f"Error during training: {e}")
+ #   try:
+    print("Starting training...")
+    trainer.run(epochs=train_epochs, evaluate_every=learning_steps_per_epoch)
+    print("Training finished!")
+ #   except Exception as e:
+ #       print(f"Error during training: {e}")
 
     print("======================================")
     print("Script finished execution.")

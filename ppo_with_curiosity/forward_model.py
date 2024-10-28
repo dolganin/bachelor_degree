@@ -2,22 +2,6 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 
-def action_to_one_hot(action, num_actions=7):
-    """
-    Преобразует действие в one-hot вектор.
-    
-    Args:
-        action (torch.Tensor): Тензор с одним действием (размер batch_size, 1).
-        num_actions (int): Количество возможных действий.
-    
-    Returns:
-        torch.Tensor: One-hot представление действия (размер batch_size, num_actions).
-    """
-    batch_size = action.size(0)
-    one_hot = torch.zeros(batch_size, num_actions)  # Создаем пустой тензор для one-hot
-    one_hot.scatter_(1, action.long(), 1)  # Преобразуем в one-hot
-    return one_hot
-
 class ForwardModelCNN(nn.Module):
     """
     Forward Model с использованием ResNet34 в качестве энкодера и стандартного CNN-декодера.
@@ -99,10 +83,11 @@ class ForwardModelCNN(nn.Module):
         batch_size, enc_channels, enc_height, enc_width = encoded_state.size()
         encoded_state = encoded_state.view(batch_size, enc_channels, -1).mean(dim=2)  # (batch_size, 512)
 
-        one_hot_action = action_to_one_hot(action)
+        # # Примените устройство (например, 'cuda:0') в функции action_to_one_hot
+        # one_hot_action = action_to_one_hot(action, device=state.device)  # Передаём устройство, на котором находится state
         
         # Пропуск действия через полносвязный слой
-        action_embedding = self.action_fc(one_hot_action)  # (batch_size, 512)
+        action_embedding = self.action_fc(action)  # (batch_size, 512)
         # Объединение признаков состояния и действия
         combined = torch.cat([encoded_state, action_embedding], dim=1)  # (batch_size, 1024)
         combined = self.combined_fc(combined)  # (batch_size, 512)

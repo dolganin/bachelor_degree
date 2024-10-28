@@ -109,7 +109,7 @@ class PPOTrainer(TrainerRL):
             
             
             # Вычисление внутреннего вознаграждения
-            intrinsic_reward = self.agent.compute_intrinsic_reward(state, selected_action_idx, next_state)
+            intrinsic_reward = self.agent.compute_intrinsic_reward(state, action_distribution, next_state)
             total_intrinsic += intrinsic_reward
             combined_reward = reward + self.agent.lambda_intrinsic * intrinsic_reward
             

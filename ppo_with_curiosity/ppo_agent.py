@@ -120,7 +120,7 @@ class PPOAgent(RLAgent):
             float: Внутреннее вознаграждение.
         """
         state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)  # (1, C, H, W)
-        action_tensor = torch.FloatTensor([action]).unsqueeze(0).to(self.device)  # (1, action_dim)
+        action_tensor = torch.FloatTensor(action).unsqueeze(0).to(self.device)  # (1, action_dim)
         next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0).to(self.device)  # (1, C, H, W)
         with torch.no_grad():
             predicted_next_state = self.forward_model(state_tensor, action_tensor)
