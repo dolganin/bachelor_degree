@@ -18,7 +18,7 @@ env_parameters:
   episodes_to_watch: 10
 
 meta_parameters:
-  out_video_file: "gameplay/best_defend_the_line.mp4"
+  out_video_file: "server_consumer/static/gameplay/best_defend_the_line.mp4"
   save_model: True
   load_model: False
   skip_learning: False

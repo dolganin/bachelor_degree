@@ -36,7 +36,16 @@
             border-radius: 10px; /* Скругление углов рамки */
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); /* Тень для рамки */
             display: block; /* Центрирование изображения */
-            margin: 0 auto; /* Центрирование изображения */
+            margin: 20px auto; /* Центрирование изображения */
+        }
+        #best-video {
+            width: 1280px; /* Ширина видео */
+            height: 720px; /* Высота видео */
+            border: 5px solid #00ccff; /* Цвет рамки */
+            border-radius: 10px; /* Скругление углов рамки */
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); /* Тень для рамки */
+            display: block; /* Центрирование видео */
+            margin: 20px auto; /* Отступ между потоками */
         }
         .logs-button {
             display: block;
@@ -64,7 +73,14 @@
         <div class="stats" id="meanReward">Mean Reward: N/A</div>
     </div>
 
+    <!-- Основной поток -->
     <img id="stream" alt="Video Stream" />
+
+    <!-- Локальное видео для лучшего захода агента -->
+    <video id="best-video" controls>
+        <source src="/static/gameplay/best_defend_the_line.mp4" type="video/mp4">
+        Ваш браузер не поддерживает элемент <code>video</code>.
+    </video>
 
     <a href="http://talos2.ru:21936" class="logs-button">Logs</a>
 
@@ -73,13 +89,14 @@
             var socket = io();  // Подключение к WebSocket
             
             socket.on('new_frame', function(data) {
+                // Обновление основного потока
                 var img = document.getElementById('stream');
                 img.src = 'data:image/jpeg;base64,' + data.image;
 
                 document.getElementById('epoch').innerText = 'Epoch: ' + data.epoch;
                 document.getElementById('loss').innerText = 'Loss: ' + data.loss;
                 document.getElementById('meanReward').innerText = 'Mean Reward: ' + data.meanReward;
-                document.getElementById('mode').innerText = 'Mode: ' + data.mode;  
+                document.getElementById('mode').innerText = 'Mode: ' + data.mode;
             });
 
             socket.on('connect', function() {
