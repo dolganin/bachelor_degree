@@ -1,5 +1,3 @@
-# PPO_Trainer.py
-
 import torch
 import numpy as np
 from tqdm import trange
@@ -70,12 +68,21 @@ class PPOTrainer(TrainerRL):
             
             # Логирование видеофрейма
             temporal_state = np.array(raw_state, dtype=np.uint8)
-            new_state = np.repeat(temporal_state[:, :, np.newaxis], 3, axis=2)
-            self.video_logger.add_frame(new_state)
+            #new_state = np.repeat(temporal_state[:, :, np.newaxis], 3, axis=2)
+            self.video_logger.add_frame(temporal_state)
             
             # Выбор действия
-            action, action_log_prob = self.agent.get_action(state)
-            selected_action = action if self.actions is None else self.actions[action]
+            action_distribution, action_log_prob = self.agent.get_action(state)
+            
+            # Для дискретного набора действий, округляем до ближайшего индекса
+            if self.actions is not None:
+                # В случае дискретных действий
+                action_distribution = torch.Tensor(action_distribution)
+                selected_action_idx = int(torch.argmax(action_distribution).item())
+                selected_action = self.actions[selected_action_idx]
+            else:
+                # Для непрерывных действий
+                selected_action = action_distribution.detach().cpu().numpy()
             
             # Выполнение действия в среде
             reward = self.env.make_action(selected_action, self.frame_repeat)
@@ -89,18 +96,18 @@ class PPOTrainer(TrainerRL):
             else:
                 next_state = np.zeros((1, self.resolution[0], self.resolution[1]), dtype=np.float32)
             
+            
             # Вычисление внутреннего вознаграждения
-            intrinsic_reward = self.agent.compute_intrinsic_reward(state, action, next_state)
+            intrinsic_reward = self.agent.compute_intrinsic_reward(state, selected_action_idx, next_state)
             total_intrinsic += intrinsic_reward
             combined_reward = reward + self.agent.lambda_intrinsic * intrinsic_reward
             
             # Сохранение перехода в память агента и буфер воспроизведения
-            self.agent.append_memory(state, action, reward, combined_reward, action_log_prob, next_state, done)
-            self.memory.push(state, action, next_state)  # Сохранение в ReplayBuffer
+            self.agent.append_memory(state, selected_action_idx, next_state, reward, combined_reward, action_log_prob, done)
             
             # Логирование данных (например, отправка в Kafka)
             publish_data(
-                array=new_state, 
+                array=temporal_state, 
                 epoch=episode, 
                 loss=0.0,
                 mean_reward=np.array(train_scores).mean() if train_scores else 0.0, 
@@ -111,7 +118,7 @@ class PPOTrainer(TrainerRL):
             
             # Обучение агента, если буфер заполнен
             if global_step > self.agent.batch_size and len(self.agent.memory) >= self.agent.batch_size:
-                policy_loss, value_loss = self.agent.train()
+                policy_loss, value_loss = self.agent.train_agent()
                 loss_lst.append((policy_loss, value_loss))
             
             # Завершение эпизода
@@ -138,7 +145,6 @@ class PPOTrainer(TrainerRL):
         
         return total_reward, np.array(loss_lst)
 
-    # Остальные методы остаются неизменными
 
 
     def save_model(self, path: str):

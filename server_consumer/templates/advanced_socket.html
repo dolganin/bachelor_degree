@@ -29,7 +29,7 @@
             font-family: 'Doom2016Text', Arial, sans-serif; /* Основной шрифт - Doom2016Text */
             overflow: hidden; /* Чтобы скрыть элементы, выходящие за пределы */
         }
-        
+
         /* Вертикальный заголовок */
         h1 {
             margin: 0;
@@ -86,6 +86,26 @@
             margin-bottom: 10px; /* Отступ снизу */
             text-shadow: 1px 1px 3px black; /* Черная обводка для режима */
         }
+
+        /* Стиль для кнопки Logs */
+        .logs-button {
+            position: fixed; /* Фиксированное позиционирование */
+            bottom: 20px; /* Отступ от нижнего края */
+            right: 20px; /* Отступ от правого края */
+            background-color: rgba(0, 0, 0, 0.8); /* Полупрозрачный черный фон */
+            color: white; /* Белый текст */
+            padding: 15px 25px; /* Отступы */
+            border-radius: 5px; /* Закругление углов */
+            text-decoration: none; /* Убираем подчеркивание */
+            font-size: 1.2em; /* Размер шрифта */
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); /* Тень для кнопки */
+            transition: background-color 0.3s, transform 0.3s; /* Плавные переходы */
+        }
+
+        .logs-button:hover {
+            background-color: rgba(255, 0, 0, 0.8); /* Более яркий фон при наведении */
+            transform: scale(1.05); /* Увеличение кнопки при наведении */
+        }
     </style>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
@@ -130,5 +150,8 @@
     </div>
 
     <img id="stream" width="800" alt="Video Stream" />
+
+    <!-- Кнопка Logs -->
+    <a href="http://talos2.ru:21936" class="logs-button">Logs</a>
 </body>
 </html>

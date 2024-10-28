@@ -19,7 +19,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 def main() -> None:
-    DEVICE = "cuda:0" if is_available() else "cpu"
+    #DEVICE = "cuda:0" if is_available() else "cpu"
+    DEVICE = 'cpu'
 
     parser = ArgumentParser(description='Bachelor Degree Script')
 

@@ -61,9 +61,10 @@ class PPOAgent(RLAgent):
         # Инициализация моделей
         self.shared_transformer = SharedTransformer(
             image_channels=3,  # Предполагается RGB; изменить при необходимости
-            image_size=84,      # Измените в соответствии с вашей средой
-            patch_size=7,
-            embedding_dim=128,
+            image_height=120,
+            image_width=130,       # Измените в соответствии с вашей средой
+            patch_size=2,
+            embedding_dim=120,
             num_heads=8,
             num_layers=6,
             mlp_dim=256,
@@ -75,7 +76,8 @@ class PPOAgent(RLAgent):
         self.forward_model = ForwardModelCNN(
             action_dim=self.action_size,
             image_channels=3,  # Предполагается RGB; изменить при необходимости
-            image_size=84,      # Измените в соответствии с вашей средой
+            input_height=120,
+            input_width=130,      # Измените в соответствии с вашей средой
             hidden_dim=self.hidden_dim
         ).to(self.device)
         
@@ -85,7 +87,7 @@ class PPOAgent(RLAgent):
         self.forward_optimizer = Adam(self.forward_model.parameters(), lr=self.lr)
         
         # Инициализация Replay Buffer для Forward Model
-        self.forward_replay_buffer = ReplayBuffer(capacity=self.memory.maxlen)
+        self.forward_replay_buffer = ReplayBuffer(capacity=self.memory_size)
         
     def get_action(self, state: np.ndarray):
         """
@@ -104,21 +106,6 @@ class PPOAgent(RLAgent):
         action_log_prob = dist.log_prob(action).sum(dim=-1)
         return action.detach().cpu().numpy()[0], action_log_prob.detach()
 
-    def append_memory(self, state: np.ndarray, action: int, reward: float, 
-                      combined_reward: float, action_log_prob: float, next_state: np.ndarray, done: bool):
-        """
-        Добавление перехода в буфер памяти.
-
-        Args:
-            state (np.ndarray): Текущее состояние.
-            action (int): Действие агента.
-            reward (float): Полученная награда.
-            combined_reward (float): Общее вознаграждение (внешнее + внутреннее).
-            action_log_prob (float): Логарифм вероятности действия.
-            next_state (np.ndarray): Следующее состояние после действия.
-            done (bool): Флаг завершения эпизода.
-        """
-        self.memory.append((state, action, reward, combined_reward, action_log_prob, next_state, done))
 
     def compute_intrinsic_reward(self, state: np.ndarray, action: int, next_state: np.ndarray):
         """
@@ -225,3 +212,10 @@ class PPOAgent(RLAgent):
         Метод оставлен пустым, так как в PPO обычно не используется целевая сеть.
         """
         pass
+
+    def append_memory(self,  state: np.ndarray, action: int, next_state: np.ndarray, reward: float, \
+                      combined_reward: float, action_log_prob: np.ndarray, done: bool) -> None:
+        """
+        Добавлеие в память модели предыдущего состояния для стабилизации обучения (впервые применено Minh. et al 2015 в Atari)
+        """
+        self.forward_replay_buffer.push(state, action, next_state, combined_reward, action_log_prob, reward, done)

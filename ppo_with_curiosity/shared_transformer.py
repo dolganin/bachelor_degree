@@ -5,9 +5,10 @@ class SharedTransformer(nn.Module):
     def __init__(
         self,
         image_channels: int = 1,
-        image_size: int = 84,
-        patch_size: int = 7,
-        embedding_dim: int = 128,
+        image_height: int = 120,  # Указываем высоту
+        image_width: int = 130,   # Указываем ширину
+        patch_size: int = 4,
+        embedding_dim: int = 148,
         num_heads: int = 8,
         num_layers: int = 6,
         mlp_dim: int = 256,
@@ -15,9 +16,15 @@ class SharedTransformer(nn.Module):
     ) -> None:
         super(SharedTransformer, self).__init__()
         
-        assert image_size % patch_size == 0, "Image size must be divisible by patch size."
+        assert image_height % patch_size == 0 and image_width % patch_size == 0, "Image dimensions must be divisible by patch size."
         self.patch_size = patch_size
-        self.num_patches = (image_size // patch_size) ** 2
+
+        # Количество патчей по высоте и ширине
+        self.num_patches_height = image_height // patch_size
+        self.num_patches_width = image_width // patch_size
+
+        # Общее количество патчей
+        self.num_patches = self.num_patches_height * self.num_patches_width
         self.embedding_dim = embedding_dim
 
         # Patch Embedding
@@ -45,10 +52,12 @@ class SharedTransformer(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
 
-        x = self.patch_embed(x)  # Shape: (batch_size, embedding_dim, num_patches_sqrt, num_patches_sqrt)
+        # x имеет форму: (batch_size, image_channels, image_height, image_width)
+        x = self.patch_embed(x)  # Shape: (batch_size, embedding_dim, num_patches_height, num_patches_width)
         x = x.flatten(2)          # Shape: (batch_size, embedding_dim, num_patches)
         x = x.transpose(1, 2)     # Shape: (batch_size, num_patches, embedding_dim)
 
+        # Добавляем positional encoding
         x = x + self.positional_encoding 
 
         x = x.transpose(0, 1)  # Shape: (num_patches, batch_size, embedding_dim)
