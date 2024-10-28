@@ -5,6 +5,7 @@ from utilities.preprocessing import preprocess
 from typing import List
 import numpy as np
 from server_consumer.broker_kafka import publish_data
+import cv2
 
 
 class TrainerRL(ABC):
@@ -43,15 +44,19 @@ class TrainerRL(ABC):
             while not self.env.is_episode_finished():
                 state = preprocess(self.env.get_state().screen_buffer, resolution=self.resolution)
 
-                temporal_state = np.array(self.env.get_state().screen_buffer, dtype=np.uint8)
-                new_state = np.repeat(temporal_state[:, :, np.newaxis], 3, axis=2)
+                temporal_state = np.array(state, dtype=np.uint8)
+                if temporal_state.shape[-1] == 3:
+                    # Меняем порядок каналов с RGB на BGR, если необходимо
+                    temporal_state = temporal_state[..., ::-1]  # Меняем порядок на BGR
 
+                # Изменение размера изображения до 1280x720
+                temporal_state = cv2.resize(temporal_state, (1280, 720), interpolation=cv2.INTER_LINEAR)
 
                 best_action_index = self.agent.get_action(state)
 
                 self.env.make_action(self.actions[best_action_index], self.frame_repeat)
 
-                publish_data(array=new_state, epoch="Undefined", loss=float("NaN"), mean_reward=np.array(test_scores).mean(), mode="Test")
+                publish_data(array=temporal_state, epoch="Undefined", loss=float("NaN"), mean_reward=np.array(test_scores).mean(), mode="Test")
             r = self.env.get_total_reward()
             test_scores.append(r)
 

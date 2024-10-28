@@ -11,6 +11,46 @@
             background-image: url('/static/resources/tallas2_background.jpg'); /* Фон для Tallas2 */
             background-size: cover;
             background-position: center;
+            color: white; /* Цвет текста для контраста */
+        }
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 2.5em; /* Увеличиваем размер заголовка */
+        }
+        .stats-container {
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .stats {
+            margin: 5px;
+            font-size: 1.2em; /* Увеличиваем размер шрифта статистики */
+        }
+        #stream {
+            width: 1280px; /* Ширина изображения */
+            height: 720px; /* Высота изображения */
+            border: 5px solid #ffcc00; /* Цвет рамки */
+            border-radius: 10px; /* Скругление углов рамки */
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); /* Тень для рамки */
+            display: block; /* Центрирование изображения */
+            margin: 0 auto; /* Центрирование изображения */
+        }
+        .logs-button {
+            display: block;
+            text-align: center;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #ffcc00; /* Цвет кнопки */
+            color: black; /* Цвет текста кнопки */
+            text-decoration: none;
+            border-radius: 5px; /* Скругление углов кнопки */
+            font-size: 1.2em; /* Размер шрифта кнопки */
+        }
+        .logs-button:hover {
+            background-color: #e6b800; /* Цвет кнопки при наведении */
         }
     </style>
 </head>
@@ -24,7 +64,7 @@
         <div class="stats" id="meanReward">Mean Reward: N/A</div>
     </div>
 
-    <img id="stream" width="800" alt="Video Stream" />
+    <img id="stream" alt="Video Stream" />
 
     <a href="http://talos2.ru:21936" class="logs-button">Logs</a>
 

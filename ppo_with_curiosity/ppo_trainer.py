@@ -8,6 +8,7 @@ from server_consumer.broker_kafka import publish_data
 from utilities.video_logger import VideoLogger
 from ppo_with_curiosity.ppo_agent import PPOAgent  # Импорт PPOAgent из PPO_Agent.py
 from .replay_buffer import ReplayBuffer  # Импортируем ReplayBuffer с затуханием
+import cv2
 
 class PPOTrainer(TrainerRL):
     def __init__(self, env, agent: Module, video_logger: VideoLogger=None, tensor_logger=None,  
@@ -68,6 +69,13 @@ class PPOTrainer(TrainerRL):
             
             # Логирование видеофрейма
             temporal_state = np.array(raw_state, dtype=np.uint8)
+            if temporal_state.shape[-1] == 3:
+                # Меняем порядок каналов с RGB на BGR, если необходимо
+                temporal_state = temporal_state[..., ::-1]  # Меняем порядок на BGR
+
+            # Изменение размера изображения до 1280x720
+            temporal_state = cv2.resize(temporal_state, (1280, 720), interpolation=cv2.INTER_LINEAR)
+            
             #new_state = np.repeat(temporal_state[:, :, np.newaxis], 3, axis=2)
             self.video_logger.add_frame(temporal_state)
             
