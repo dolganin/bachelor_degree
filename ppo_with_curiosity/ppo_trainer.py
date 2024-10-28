@@ -65,7 +65,7 @@ class PPOTrainer(TrainerRL):
         total_reward = 0.0
         total_intrinsic = 0.0
         
-        for _ in trange(steps_per_epoch, leave=False, desc=f"Episode {episode+1}"):
+        for _ in trange(steps_per_epoch, leave=False, desc=f"Epoch {episode+1}"):
             # Получение и предобработка текущего состояния
             raw_state = self.env.get_state().screen_buffer
             state = preprocess(raw_state, resolution=self.resolution)
@@ -158,7 +158,7 @@ class PPOTrainer(TrainerRL):
 
 
 
-    def save_model(self, path: str):
+    def save_model(self, path: str) -> None:
         """
         Сохранение моделей агента на диск.
 
@@ -172,7 +172,7 @@ class PPOTrainer(TrainerRL):
         }, f"{path}.pth")
         print(f"Models saved to {path}.pth")
 
-    def load_model(self, path: str):
+    def load_model(self, path: str) -> None:
         """
         Загрузка сохранённых моделей агента с диска.
 

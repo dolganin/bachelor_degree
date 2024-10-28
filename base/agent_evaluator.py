@@ -39,7 +39,10 @@ class AgentEvaluator:
         # Сравнение с текущим лучшим показателем и сохранение лучшего агента
         if score > self.best_score:
             self.best_score = score
-            self.best_agent_weights = trainer.save_model("weights/best_model/IEM_PPO.pth")  # Сохраняем веса агента
+            self.best_agent_weights = trainer.save_model(path="weights/best_model/IEM_PPO")  # Сохраняем веса агента
             print("Новый лучший ансмабль агентов сохранён с показателями:",
                   f"Mean Reward: {mean_reward}, Std Reward: {std_reward}, Loss: {loss}")
+            trainer.video_logger.save()
+        else:
+            trainer.video_logger.clear()
 

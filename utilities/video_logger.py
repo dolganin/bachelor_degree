@@ -19,23 +19,27 @@ class VideoLogger:
         # Проверяем, что кадр в правильном формате
         if frame.dtype != np.uint8:
             frame = (frame * 255).astype(np.uint8)  # Преобразование к uint8, если необходимо
-        if frame.shape[2] == 3:  # Если кадр в RGB
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # Преобразуем RGB в BGR
+        # Кадры подаются в формате BGR, поэтому не нужно делать преобразование
         self.frames.append(frame)
 
     def save(self):
         """Сохраняет видео на диск."""
+        if not self.frames:
+            print("Нет кадров для сохранения!")
+            return
+
         height, width, _ = self.frames[0].shape
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        
+        # Используем mp4v кодек для формата mp4
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(self.filepath, fourcc, self.fps, (width, height))
 
         for frame in self.frames:
             out.write(frame)
         
         out.release()
+        print(f"Gameplay of agent is saved to {self.filepath}")
 
     def clear(self):
         """Очищает сохраненные кадры."""
         self.frames.clear()
-
-

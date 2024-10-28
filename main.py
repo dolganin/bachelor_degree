@@ -7,7 +7,6 @@ from utilities.yaml_reader import YAMLParser, constants
 
 import warnings
 import os
-import logging
 from argparse import ArgumentParser
 from itertools import product
 
@@ -15,12 +14,11 @@ from torch.cuda import is_available
 from torch.utils.tensorboard import SummaryWriter
 
 
-
-
-
 def main() -> None:
-    #DEVICE = "cuda:0" if is_available() else "cpu"
+    # Выбор устройства
+    #DEVICE = 'cuda:0' if is_available() else 'cpu'
     DEVICE = 'cpu'
+    print(f"Device selected for training: {DEVICE}")
 
     parser = ArgumentParser(description='Bachelor Degree Script')
 
@@ -37,29 +35,54 @@ def main() -> None:
     debug = args.debug
     test = args.test
 
+    print("Starting with the following parameters:")
+    print(f"YAML Config Path: {yaml}")
+    print(f"Run Name: {runname}")
+    print(f"Weights Path: {weights}")
+    print(f"Debug Mode: {debug}")
+    print(f"Test Mode: {test}")
+
     if not debug:
         warnings.filterwarnings("ignore")
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Только ошибки
-        logging.getLogger('tensorflow').setLevel(logging.ERROR)
+        print("Debug mode is off. Only errors will be displayed.")
 
     writter = SummaryWriter(log_dir=runname)
+    print(f"TensorBoard writer initialized at: {runname}")
 
-    config = YAMLParser(config=yaml).parse_config()
+    # Загрузка конфигурации из YAML
+    try:
+        config = YAMLParser(config=yaml).parse_config()
+        print("Config successfully parsed.")
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        return
 
-    learning_rate, batch_size, replay_memory_size,discount_factor, train_epochs, \
-    frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch, \
-        save_model, weight_decay, load_model, out_video_file, lambda_intrinsic, entropy_coef,\
-              clip_epsilon, hidden_dim = constants(config)
+    # Распаковка параметров из конфигурации
+    try:
+        (learning_rate, batch_size, replay_memory_size, discount_factor, train_epochs, 
+        frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch, 
+        save_model, weight_decay, load_model, out_video_file, lambda_intrinsic, entropy_coef, 
+        clip_epsilon, hidden_dim) = constants(config)
+        print("Parameters extracted from config:")
+        print(f"Learning Rate: {learning_rate}, Batch Size: {batch_size}, Memory Size: {replay_memory_size}")
+    except Exception as e:
+        print(f"Error extracting parameters: {e}")
+        return
 
-    # Initialize game and actions
-    game = create_simple_game(config_file_path=cfg_path)
+    # Инициализация игры и действий
+    try:
+        game = create_simple_game(config_file_path=cfg_path)
+        n = game.get_available_buttons_size()
+        actions = [list(a) for a in product([0, 1], repeat=n)]
+        print(f"Game initialized with {n} available actions.")
+    except Exception as e:
+        print(f"Error initializing game: {e}")
+        return
 
-    n = game.get_available_buttons_size()
-    actions = [list(a) for a in product([0, 1], repeat=n)]
-
-    # Initialize our agent with the set parameters
-            # Инициализация агента
-    agent = PPOAgent(
+    # Инициализация агента
+    try:
+        agent = PPOAgent(
             action_size=n,
             memory_size=replay_memory_size,
             batch_size=batch_size,
@@ -72,27 +95,51 @@ def main() -> None:
             clip_epsilon=clip_epsilon,
             hidden_dim=hidden_dim
         )
-        
+        print("Agent successfully initialized.")
+    except Exception as e:
+        print(f"Error initializing agent: {e}")
+        return
 
-    vlogger = VideoLogger(filepath=out_video_file)
-    evaluator = AgentEvaluator(window_size=100)
+    # Инициализация вспомогательных объектов
+    try:
+        vlogger = VideoLogger(filepath=out_video_file)
+        evaluator = AgentEvaluator(window_size=100)
+        print("Video Logger and Agent Evaluator initialized.")
+    except Exception as e:
+        print(f"Error initializing logger/evaluator: {e}")
+        return
 
-    trainer = PPOTrainer(agent=agent,env=game, 
-                         tensor_logger=writter, 
-                         device=DEVICE, 
-                         steps_per_epoch=learning_steps_per_epoch, 
-                         resolution=resolution, 
-                         frame_repeat=frame_repeat, 
-                         actions=actions, 
-                         test_episodes_per_epoch=test_episodes_per_epoch, 
-                         video_logger=vlogger,
-                         agent_evaluator=evaluator)
-    
-    trainer.run(epochs=train_epochs)
+    # Инициализация тренера
+    try:
+        trainer = PPOTrainer(
+            agent=agent,
+            env=game,
+            tensor_logger=writter,
+            device=DEVICE,
+            steps_per_epoch=learning_steps_per_epoch,
+            resolution=resolution,
+            frame_repeat=frame_repeat,
+            actions=actions,
+            test_episodes_per_epoch=test_episodes_per_epoch,
+            video_logger=vlogger,
+            agent_evaluator=evaluator
+        )
+        print("Trainer successfully initialized.")
+    except Exception as e:
+        print(f"Error initializing trainer: {e}")
+        return
+
+    # Запуск обучения
+    try:
+        print("Starting training...")
+        trainer.run(epochs=train_epochs, evaluate_every=learning_steps_per_epoch)
+        print("Training finished!")
+    except Exception as e:
+        print(f"Error during training: {e}")
 
     print("======================================")
-    print("Training finished!")
+    print("Script finished execution.")
 
 
 if __name__ == "__main__":
-   main()
+    main()

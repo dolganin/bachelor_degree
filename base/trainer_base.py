@@ -125,10 +125,9 @@ class TrainerRL(ABC):
         for epoch in range(epochs):
             start_time = time()
             test_scores = []
-            print(f"\nEpoch #{epoch + 1}")
 
             # Запуск тренировки на одном эпизоде
-            reward, loss_lst = self.train(epoch)
+            reward, loss_lst = self.train(epoch, steps_per_epoch=self.steps_per_epoch)
             self.total_rewards.append(reward)
             
             # Периодическая оценка
@@ -137,24 +136,12 @@ class TrainerRL(ABC):
                 test_scores = self.evaluate()
             
             # Логгирование результатов
+            test_scores = np.array(test_scores)
 
             self.log_metrics(epoch, 
                              mean_reward=test_scores.mean(), 
-                             std_reward=test_scores.std(), 
-                             min_reward=test_scores.min(), 
-                             max_reward=test_scores.max(),
+                             std_reward=test_scores.std(),
                              mean_loss=loss_lst.mean())
             print("Total elapsed time: %.2f minutes" % ((time() - start_time) / 60.0))
-            
-            if reward > max_reward:
-                max_reward = reward
-                self.video_logger.save()
-                print(f"Saving the network weights to{self.model_savefile}")
-                self.save_model()
-            else:
-                self.video_logger.clear()
-
         
         self.env.close()
-
-# test(self.env, writter, epoch, self.agent, test_episodes_per_epoch=test_episodes_per_epoch, frame_repeat=frame_repeat, resolution=resolution, actions = actions)
