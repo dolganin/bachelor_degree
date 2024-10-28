@@ -160,6 +160,7 @@ __pycache__
 _vizdoom
 _vizdoom.ini 
 *.pth
+*.webm
 *.mp4
 
 # PyCharm
