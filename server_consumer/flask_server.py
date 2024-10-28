@@ -1,5 +1,3 @@
-# app.py
-
 from flask import Flask, request, jsonify, render_template
 from flask_socketio import SocketIO
 import logging
@@ -13,8 +11,23 @@ socketio = SocketIO(app)
 
 @app.route('/')
 def index():
-    """Маршрут для рендеринга основной страницы с отображением видео."""
-    return render_template('advanced_socket.html')
+    """Маршрут для хаба стримов."""
+    return render_template('hub.html')
+
+@app.route('/tallas2')
+def tallas2():
+    """Маршрут для стрима tallas2."""
+    return render_template('tallas2.html')  # Обновлено для использования нового HTML файла
+
+@app.route('/aurora')
+def aurora():
+    """Маршрут для стрима aurora."""
+    return render_template('aurora.html')  # Обновлено для использования нового HTML файла
+
+@app.route('/apollo2')
+def apollo2():
+    """Маршрут для стрима apollo2."""
+    return render_template('apollo2.html')  # Обновлено для использования нового HTML файла
 
 @app.route('/update_frame', methods=['POST'])
 def update_frame():
@@ -31,12 +44,10 @@ def update_frame():
         loss = round(data['loss'], 2)
         meanReward = round(data['meanReward'], 2)
         socketio.emit('new_frame', {'image': image, 'loss': loss, 'epoch': epoch, 'meanReward': meanReward, 'mode': mode})
-    except:
+    except Exception as e:
+        logger.error(f"Error processing frame data: {e}")
         socketio.emit('new_frame', {'image': image, 'loss': "NaN", 'epoch': "Undefined", 'meanReward': "NaN", 'mode': mode})
 
-    
-    # Отправка изображения через WebSocket
-    
     logger.debug("Frame received and sent to client.")
     
     return jsonify({'status': 'success'}), 200

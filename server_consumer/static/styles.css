@@ -1,0 +1,139 @@
+/* Подключение шрифта Doom2016Text */
+@font-face {
+    font-family: 'Doom2016Text';
+    src: url('/static/fonts/amazdoomleft.ttf') format('truetype');
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Doom2016Text', Arial, sans-serif;
+    overflow: hidden;
+}
+
+/* Стили для хаба */
+body.hub {
+    background-size: cover;
+    background-position: center;
+    color: #fff; /* Цвет текста */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Высота на весь экран */
+    overflow: hidden;
+}
+
+/* Стили для сервера tallas2 */
+body.tallas2 {
+    background-size: cover;
+    background-position: center;
+}
+
+/* Стили для сервера aurora */
+body.aurora {
+    background-image: url('/static/resources/aurora_background.jpg'); /* Проверьте наличие файла aurora_background.jpg */
+    background-size: cover;
+    background-position: center;
+}
+
+/* Стили для сервера apollo2 */
+body.apollo2 {
+    background-image: url('/static/resources/apollo2_background.jpg'); /* Проверьте наличие файла apollo2_background.jpg */
+    background-size: cover;
+    background-position: center;
+}
+
+h1 {
+    margin: 0;
+    font-size: 5em;
+    writing-mode: vertical-rl;
+    text-align: center;
+    text-shadow: 2px 2px 5px black;
+    border: 5px solid red;
+    border-radius: 10px;
+    padding: 20px 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.stats-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(255, 0, 0, 0.8);
+    border: 2px solid #ff0000;
+    border-radius: 15px;
+    padding: 15px;
+    text-align: left;
+    font-family: Arial, sans-serif;
+    color: white;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+}
+
+.stats {
+    font-size: 1.5em;
+    margin: 5px 0;
+    text-shadow: 1px 1px 3px black;
+}
+
+.mode {
+    font-size: 1.8em;
+    margin-bottom: 10px;
+    text-shadow: 1px 1px 3px black;
+}
+
+.logs-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 1.2em;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+.logs-button:hover {
+    background-color: rgba(255, 0, 0, 0.8);
+    transform: scale(1.05);
+}
+
+.stream-links {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.stream-links a {
+    color: white;
+    font-size: 2em;
+    margin: 10px 0;
+    text-decoration: none;
+    padding: 20px 40px; /* Увеличение кнопок */
+    border: 2px solid #ff0000;
+    border-radius: 5px;
+    transition: background-color 0.3s, transform 0.3s;
+    background-color: rgba(0, 0, 0, 0.5); /* Полупрозрачный черный фон */
+}
+
+.stream-links a:hover {
+    background-color: rgba(255, 0, 0, 0.8);
+    transform: scale(1.05);
+}

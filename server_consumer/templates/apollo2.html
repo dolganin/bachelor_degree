@@ -2,13 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ server_name }} Training Stream</title>
+    <title>Apollo2 Training Stream</title>
     <link rel="icon" href="/static/resources/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="/static/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            background-image: url('/static/resources/apollo2_background.jpg');
+            background-size: cover;
+            background-position: center;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body>
-    <h1>{{ server_name | capitalize }} Training Stream</h1>
+    <h1>Apollo2 Training Stream</h1>
     
     <div class="stats-container">
         <div class="mode" id="mode">Mode: N/A</div>
