@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def create_black_image_with_text(text):
     """Создание черного изображения с заданным текстом."""
-    img = Image.new('RGB', (640, 480), color=(0, 0, 0))
+    img = Image.new('RGB', (1280, 720), color=(0, 0, 0))
     d = ImageDraw.Draw(img)
 
     try:

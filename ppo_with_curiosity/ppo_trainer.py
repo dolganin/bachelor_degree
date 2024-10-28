@@ -9,12 +9,14 @@ from utilities.video_logger import VideoLogger
 from ppo_with_curiosity.ppo_agent import PPOAgent  # Импорт PPOAgent из PPO_Agent.py
 from .replay_buffer import ReplayBuffer  # Импортируем ReplayBuffer с затуханием
 import cv2
+from base.agent_evaluator import AgentEvaluator
 
 class PPOTrainer(TrainerRL):
     def __init__(self, env, agent: Module, video_logger: VideoLogger=None, tensor_logger=None,  
                  device: str = "cpu", resolution: tuple = (30, 45), frame_repeat: int = 45, 
                  steps_per_epoch: int = 1000, actions: list = None, test_episodes_per_epoch: int = 1000, 
-                 model_savefile: str = None, buffer_capacity: int = 10000, buffer_momentum: float = 0.995):
+                 model_savefile: str = None, buffer_capacity: int = 10000, buffer_momentum: float = 0.995, 
+                 agent_evaluator: AgentEvaluator = None):
         """
         Инициализация PPOTrainer с настройками для PPO with Curiosity.
 
@@ -50,6 +52,7 @@ class PPOTrainer(TrainerRL):
         
         # Инициализация памяти с заданной емкостью и затуханием
         self.memory = ReplayBuffer(capacity=buffer_capacity, momentum=buffer_momentum)
+        self.avaluator = agent_evaluator
 
     def train(self, episode: int, steps_per_epoch: int = 1000):
         """
@@ -163,12 +166,9 @@ class PPOTrainer(TrainerRL):
             path (str): Базовый путь для сохранения моделей (без расширений).
         """
         torch.save({
-            'policy_net_state_dict': self.policy_net.state_dict(),
-            'value_net_state_dict': self.value_net.state_dict(),
-            'forward_model_state_dict': self.forward_model.state_dict(),
-            'policy_optimizer_state_dict': self.policy_optimizer.state_dict(),
-            'value_optimizer_state_dict': self.value_optimizer.state_dict(),
-            'forward_optimizer_state_dict': self.forward_optimizer.state_dict(),
+            'policy_net_state_dict': self.agent.policy_net.state_dict(),
+            'value_net_state_dict': self.agent.value_net.state_dict(),
+            'forward_model_state_dict': self.agent.forward_model.state_dict()
         }, f"{path}.pth")
         print(f"Models saved to {path}.pth")
 
@@ -188,14 +188,6 @@ class PPOTrainer(TrainerRL):
         self.value_net.to(self.device)
         self.forward_model.to(self.device)
         
-        # Загрузка состояний оптимизаторов
-        self.policy_optimizer.load_state_dict(checkpoint['policy_optimizer_state_dict'])
-        self.value_optimizer.load_state_dict(checkpoint['value_optimizer_state_dict'])
-        self.forward_optimizer.load_state_dict(checkpoint['forward_optimizer_state_dict'])
-        
         print(f"Models and optimizers loaded from {path}.pth")
-
-    def get_weights(self):
-        return self.policy_net.state_dict, self.value_net.state_dict, self.forwrd_model.state_dict
 
 

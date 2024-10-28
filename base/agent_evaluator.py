@@ -22,7 +22,7 @@ class AgentEvaluator:
             return 0.5  # Среднее значение по умолчанию, если неизвестен диапазон
         return (value - min_val) / (max_val - min_val)
     
-    def evaluate_and_save(self, agent, mean_reward, std_reward, loss):
+    def evaluate_and_save(self, trainer, mean_reward, std_reward, loss):
         # Обновляем деки для отслеживания скользящих min и max
         self.mean_rewards.append(mean_reward)
         self.std_rewards.append(std_reward)
@@ -39,7 +39,7 @@ class AgentEvaluator:
         # Сравнение с текущим лучшим показателем и сохранение лучшего агента
         if score > self.best_score:
             self.best_score = score
-            self.best_agent_weights = agent.get_weights()  # Сохраняем веса агента
-            print("Новый лучший агент сохранён с показателями:",
+            self.best_agent_weights = trainer.save_model("weights/best_model/IEM_PPO.pth")  # Сохраняем веса агента
+            print("Новый лучший ансмабль агентов сохранён с показателями:",
                   f"Mean Reward: {mean_reward}, Std Reward: {std_reward}, Loss: {loss}")
 

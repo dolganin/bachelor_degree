@@ -75,6 +75,7 @@ def main() -> None:
         
 
     vlogger = VideoLogger(filepath=out_video_file)
+    evaluator = AgentEvaluator(window_size=100)
 
     trainer = PPOTrainer(agent=agent,env=game, 
                          tensor_logger=writter, 
@@ -84,9 +85,8 @@ def main() -> None:
                          frame_repeat=frame_repeat, 
                          actions=actions, 
                          test_episodes_per_epoch=test_episodes_per_epoch, 
-                         video_logger=vlogger)
-
-    evaluator = AgentEvaluator(window_size=100)
+                         video_logger=vlogger,
+                         agent_evaluator=evaluator)
     
     trainer.run(epochs=train_epochs)
 

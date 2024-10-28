@@ -6,6 +6,7 @@ from typing import List
 import numpy as np
 from server_consumer.broker_kafka import publish_data
 import cv2
+from torch import argmax, Tensor
 
 
 class TrainerRL(ABC):
@@ -42,25 +43,35 @@ class TrainerRL(ABC):
         for _ in trange(self.test_episodes_per_epoch, leave=False):
             self.env.new_episode()
             while not self.env.is_episode_finished():
-                state = preprocess(self.env.get_state().screen_buffer, resolution=self.resolution)
 
-                temporal_state = np.array(state, dtype=np.uint8)
+                raw_state = self.env.get_state().screen_buffer
+                state = preprocess(raw_state, resolution=self.resolution)
+                
+                # Логирование видеофрейма
+                temporal_state = np.array(raw_state, dtype=np.uint8)
                 if temporal_state.shape[-1] == 3:
                     # Меняем порядок каналов с RGB на BGR, если необходимо
                     temporal_state = temporal_state[..., ::-1]  # Меняем порядок на BGR
 
                 # Изменение размера изображения до 1280x720
                 temporal_state = cv2.resize(temporal_state, (1280, 720), interpolation=cv2.INTER_LINEAR)
+                
+                #new_state = np.repeat(temporal_state[:, :, np.newaxis], 3, axis=2)
+                self.video_logger.add_frame(temporal_state)
+                
+                action_distribution, _ = self.agent.get_action(state)
+                action_distribution = Tensor(action_distribution) 
+                selected_action_idx = int(argmax(action_distribution).item())
 
-                best_action_index = self.agent.get_action(state)
-
-                self.env.make_action(self.actions[best_action_index], self.frame_repeat)
+                self.env.make_action(self.actions[selected_action_idx], self.frame_repeat)
+                
 
                 publish_data(array=temporal_state, epoch="Undefined", loss=float("NaN"), mean_reward=np.array(test_scores).mean(), mode="Test")
             r = self.env.get_total_reward()
             test_scores.append(r)
 
         test_scores = np.array(test_scores)
+        self.avaluator.evaluate_and_save(self, test_scores.mean(), test_scores.std(), self.agent.compute_total_loss())
         return test_scores
 
     @abstractmethod

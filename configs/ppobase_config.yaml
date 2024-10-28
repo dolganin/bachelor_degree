@@ -4,7 +4,7 @@ learning_parameters:
   train_epochs: 20
   replay_memory_size: 100000
   batch_size: 128
-  test_episodes_per_epoch: 100
+  test_episodes_per_epoch: 2
   frame_repeat: 96
   learning_steps_per_epoch: 50
   weight_decay: 0.007

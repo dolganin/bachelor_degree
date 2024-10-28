@@ -134,7 +134,7 @@ class PPOAgent(RLAgent):
         Returns:
             tuple: Значения потерь для Policy Network и Value Network.
         """
-        if len(self.memory) < self.batch_size:
+        if len(self.forward_replay_buffer) < self.batch_size:
             return 0.0, 0.0  # Недостаточно данных для обучения
 
         # Получение данных из буфера
@@ -219,3 +219,18 @@ class PPOAgent(RLAgent):
         Добавлеие в память модели предыдущего состояния для стабилизации обучения (впервые применено Minh. et al 2015 в Atari)
         """
         self.forward_replay_buffer.push(state, action, next_state, combined_reward, action_log_prob, reward, done)
+
+    def compute_total_loss(self):
+        """
+        Вычисляет общий лосс, складывая потери от Policy Network, Value Network и Forward Model.
+
+        Returns:
+            float: Общий лосс.
+        """
+        # Обучение агента и получение потерь
+        policy_loss, value_loss = self.train_agent()
+        forward_loss = self.update_forward_model()
+
+        # Общий лосс
+        total_loss = policy_loss + value_loss + forward_loss
+        return total_loss
