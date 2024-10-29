@@ -138,7 +138,6 @@ class PPOTrainer(TrainerRL):
             loss_lst.append(('Forward Loss', forward_loss))
         
         # Логирование прогресса
-        average_reward = np.array(train_scores).mean() if train_scores else 0.0
         average_policy_loss = np.mean([loss[0] for loss in loss_lst if isinstance(loss, tuple) and len(loss) == 2]) if loss_lst else 0.0
         average_value_loss = np.mean([loss[1] for loss in loss_lst if isinstance(loss, tuple) and len(loss) == 2]) if loss_lst else 0.0
         average_forward_loss = np.mean([loss[1] for loss in loss_lst if isinstance(loss, tuple) and len(loss) == 2]) if loss_lst else 0.0
@@ -150,6 +149,8 @@ class PPOTrainer(TrainerRL):
                 mean_reward=np.array(train_scores).mean() if train_scores else 0.0, 
                 mode="Train"
             )
+
+        self.log_metrics()
 
 
         print(f"Episode {episode+1}, Reward: {total_reward:.2f}, Intrinsic: {total_intrinsic:.2f}, "

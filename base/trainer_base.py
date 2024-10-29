@@ -95,7 +95,8 @@ class TrainerRL(ABC):
         pass
 
     def log_metrics(self, epoch: int = 0, mean_reward: float = float("NaN"), min_reward: float = float("NaN"), \
-                    max_reward: float = float("NaN"), std_reward: float = float("NaN"), mean_loss: float = None) -> None:
+                    max_reward: float = float("NaN"), std_reward: float = float("NaN"), mean_loss: float = None, \
+                        forward_loss: float = None, policy_loss: float = None, value_loss: float = None) -> None:
         """
         Логгирование метрик обучения, таких как награды и потери.
 
@@ -104,14 +105,14 @@ class TrainerRL(ABC):
             reward: Суммарная награда за эпизод.
             loss: Потери модели (если есть).
         """
-
-        self.tensor_logger.add_scalar('Test score minimum', min_reward, epoch)
-        self.tensor_logger.add_scalar('Test score maximum', max_reward, epoch)
+        self.tensor_logger.add_scalar('Forward loss', forward_loss, epoch)
+        self.tensor_logger.add_scalar('Policy loss', policy_loss, epoch)
+        self.tensor_logger.add_scalar('Value loss', value_loss, epoch)
         self.tensor_logger.add_scalar('Test score mean', mean_reward, epoch)
         self.tensor_logger.add_scalar('Test score std', std_reward, epoch)
-        self.tensor_logger.add_scalar('Mean Loss', mean_loss, epoch)
+        self.tensor_logger.add_scalar('Mean loss', mean_loss, epoch)
 
-        print(f"Episode {epoch}: MeanReward = {mean_reward}, StdReward = {std_reward}, MeanLoss = {mean_loss}")
+        print("Metrics of model was logged to tensorboard!")
 
     def run(self, epochs: int = 0, evaluate_every: int = 1) -> None:
         """
