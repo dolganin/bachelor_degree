@@ -117,13 +117,6 @@ class PPOTrainer(TrainerRL):
             self.agent.append_memory(state, selected_action_idx, next_state, reward, combined_reward, action_log_prob, done)
             
             # Логирование данных (например, отправка в Kafka)
-            publish_data(
-                array=temporal_state, 
-                epoch=episode, 
-                loss=0.0,
-                mean_reward=np.array(train_scores).mean() if train_scores else 0.0, 
-                mode="Train"
-            )
             
             global_step += 1
             
@@ -150,6 +143,15 @@ class PPOTrainer(TrainerRL):
         average_value_loss = np.mean([loss[1] for loss in loss_lst if isinstance(loss, tuple) and len(loss) == 2]) if loss_lst else 0.0
         average_forward_loss = np.mean([loss[1] for loss in loss_lst if isinstance(loss, tuple) and len(loss) == 2]) if loss_lst else 0.0
         
+        publish_data(
+                array=temporal_state, 
+                epoch=episode, 
+                loss=np.mean(loss_lst),
+                mean_reward=np.array(train_scores).mean() if train_scores else 0.0, 
+                mode="Train"
+            )
+
+
         print(f"Episode {episode+1}, Reward: {total_reward:.2f}, Intrinsic: {total_intrinsic:.2f}, "
               f"Policy Loss: {average_policy_loss:.4f}, Value Loss: {average_value_loss:.4f}, "
               f"Forward Loss: {average_forward_loss:.4f}")

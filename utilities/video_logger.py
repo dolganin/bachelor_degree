@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 class VideoLogger:
-    def __init__(self, filepath, fps=10):
+    def __init__(self, filepath, fps=7):
         """
         Инициализация видеозаписи.
         

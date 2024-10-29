@@ -41,7 +41,7 @@ def main() -> None:
     parser = ArgumentParser(description='Bachelor Degree Script')
     parser.add_argument('-y', '--yaml', type=str, help='Path to yaml file', default="ppobase_config")
     parser.add_argument('-r', '--runname', type=str, help='Folder name for run', default="runs/run_0")
-    parser.add_argument('-w', '--weights', type=str, help='Path to model weights', default=None)
+    parser.add_argument('-w', '--weights', type=str, help='Path to model weights', default="weigths/model")
     parser.add_argument('-d', '--debug', type=bool, help='Debug mode flag', default=False)
     parser.add_argument('-t', '--test', type=bool, help='Test mode flag', default=False)
     
@@ -163,7 +163,11 @@ def main() -> None:
 
     # Запуск обучения
     print_debug_message("Starting training...", "yellow")
-    trainer.run(epochs=train_epochs, evaluate_every=learning_steps_per_epoch)
+    try:
+        trainer.run(epochs=train_epochs, evaluate_every=learning_steps_per_epoch)
+    except Exception as e:
+        trainer.save_model(weights)
+        print_debug_message(f"Error training the agent: {e}", "red")
     print_debug_message("Training finished!", "green")
 
     print_debug_message("Script finished execution.", "blue")
