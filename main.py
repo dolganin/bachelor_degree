@@ -1,3 +1,5 @@
+from termcolor import colored
+from colorama import init
 from utilities.create_game import create_simple_game
 from ppo_with_curiosity.ppo_agent import PPOAgent
 from ppo_with_curiosity.ppo_trainer import PPOTrainer
@@ -9,52 +11,69 @@ import warnings
 import os
 from argparse import ArgumentParser
 from itertools import product
-
 from torch.cuda import is_available
 from torch.utils.tensorboard import SummaryWriter
 
+# Инициализация colorama
+init(autoreset=True)
+
+def print_debug_message(message, color="cyan"):
+    line = "=" * 50
+    print(f"\n{colored(line.center(80), color)}")
+    print(colored(message.center(80), color))
+    print(f"{colored(line.center(80), color)}\n")
+
+def print_parameters_table(parameters: dict):
+    """Форматированный вывод параметров в виде таблицы"""
+    print("\n" + colored("=" * 60, "yellow"))
+    print(colored("Parameters".center(60), "yellow"))
+    print(colored("=" * 60, "yellow"))
+    for key, value in parameters.items():
+        print(f"{key:<20}: {value}")
+    print(colored("=" * 60, "yellow"))
 
 def main() -> None:
-    # Выбор устройства
-    DEVICE = 'cuda:0' if is_available() else 'cpu'
-    print(f"Device selected for training: {DEVICE}")
+    # Устройство
+    #DEVICE = 'cuda:0' if is_available() else 'cpu'
+    DEVICE = 'cpu'
+    print_debug_message(f"Device selected for training: {DEVICE}", "green")
 
     parser = ArgumentParser(description='Bachelor Degree Script')
-
-    parser.add_argument('-y', '--yaml', type=str, help='A path to yaml file', default="ppobase_config")
-    parser.add_argument('-r', '--runname', type=str, help='A path to name of folder for run', default="runs/run_0")
-    parser.add_argument('-w', '--weights', type=str, help='A path to weights of model', default=None)
-    parser.add_argument('-d', '--debug', type=bool, help='A flag to debug mode', default=False)
-    parser.add_argument('-t', '--test', type=bool, help='A flag to test mode', default=False)
+    parser.add_argument('-y', '--yaml', type=str, help='Path to yaml file', default="ppobase_config")
+    parser.add_argument('-r', '--runname', type=str, help='Folder name for run', default="runs/run_0")
+    parser.add_argument('-w', '--weights', type=str, help='Path to model weights', default=None)
+    parser.add_argument('-d', '--debug', type=bool, help='Debug mode flag', default=False)
+    parser.add_argument('-t', '--test', type=bool, help='Test mode flag', default=False)
     
     args = parser.parse_args()
-    yaml = args.yaml
-    runname = args.runname
-    weights = args.weights
-    debug = args.debug
-    test = args.test
-
-    print("Starting with the following parameters:")
-    print(f"YAML Config Path: {yaml}")
-    print(f"Run Name: {runname}")
-    print(f"Weights Path: {weights}")
-    print(f"Debug Mode: {debug}")
-    print(f"Test Mode: {test}")
+    yaml, runname, weights, debug, test = args.yaml, args.runname, args.weights, args.debug, args.test
+    
+    # Параметры для вывода в таблице
+    parameters = {
+        "YAML Config Path": yaml,
+        "Run Name": runname,
+        "Weights Path": weights,
+        "Debug Mode": debug,
+        "Test Mode": test
+    }
+    
+    print_debug_message("Starting with the following parameters:", "yellow")
+    print_parameters_table(parameters)
 
     if not debug:
         warnings.filterwarnings("ignore")
-        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Только ошибки
-        print("Debug mode is off. Only errors will be displayed.")
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+        print_debug_message("Debug mode is off. Only errors will be displayed.", "red")
 
     writter = SummaryWriter(log_dir=runname)
-    print(f"TensorBoard writer initialized at: {runname}")
+    print_debug_message(f"TensorBoard writer initialized at: {runname}", "green")
 
     # Загрузка конфигурации из YAML
     try:
         config = YAMLParser(config=yaml).parse_config()
-        print("Config successfully parsed.")
+        print_debug_message("Config successfully parsed.", "green")
     except Exception as e:
-        print(f"Error loading config: {e}")
+        print_debug_message(f"Error loading config: {e}", "red")
         return
 
     # Распаковка параметров из конфигурации
@@ -63,10 +82,24 @@ def main() -> None:
         frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch, 
         save_model, weight_decay, load_model, out_video_file, lambda_intrinsic, entropy_coef, 
         clip_epsilon, hidden_dim) = constants(config)
-        print("Parameters extracted from config:")
-        print(f"Learning Rate: {learning_rate}, Batch Size: {batch_size}, Memory Size: {replay_memory_size}")
+        
+        # Параметры конфигурации
+        config_parameters = {
+            "Learning Rate": learning_rate,
+            "Batch Size": batch_size,
+            "Memory Size": replay_memory_size,
+            "Discount Factor": discount_factor,
+            "Train Epochs": train_epochs,
+            "Frame Repeat": frame_repeat,
+            "Steps per Epoch": learning_steps_per_epoch,
+            "Resolution": resolution,
+            "Episodes per Epoch": test_episodes_per_epoch
+        }
+        
+        print_debug_message("Parameters extracted from config:", "yellow")
+        print_parameters_table(config_parameters)
     except Exception as e:
-        print(f"Error extracting parameters: {e}")
+        print_debug_message(f"Error extracting parameters: {e}", "red")
         return
 
     # Инициализация игры и действий
@@ -74,9 +107,9 @@ def main() -> None:
         game = create_simple_game(config_file_path=cfg_path)
         n = game.get_available_buttons_size()
         actions = [list(a) for a in product([0, 1], repeat=n)]
-        print(f"Game initialized with {n} available actions.")
+        print_debug_message(f"Game initialized with {n} available actions.", "green")
     except Exception as e:
-        print(f"Error initializing game: {e}")
+        print_debug_message(f"Error initializing game: {e}", "red")
         return
 
     # Инициализация агента
@@ -94,18 +127,18 @@ def main() -> None:
             clip_epsilon=clip_epsilon,
             hidden_dim=hidden_dim
         )
-        print("Agent successfully initialized.")
+        print_debug_message("Agent successfully initialized.", "green")
     except Exception as e:
-        print(f"Error initializing agent: {e}")
+        print_debug_message(f"Error initializing agent: {e}", "red")
         return
 
     # Инициализация вспомогательных объектов
     try:
         vlogger = VideoLogger(filepath=out_video_file)
         evaluator = AgentEvaluator(window_size=100)
-        print("Video Logger and Agent Evaluator initialized.")
+        print_debug_message("Video Logger and Agent Evaluator initialized.", "green")
     except Exception as e:
-        print(f"Error initializing logger/evaluator: {e}")
+        print_debug_message(f"Error initializing logger/evaluator: {e}", "red")
         return
 
     # Инициализация тренера
@@ -123,21 +156,17 @@ def main() -> None:
             video_logger=vlogger,
             agent_evaluator=evaluator
         )
-        print("Trainer successfully initialized.")
+        print_debug_message("Trainer successfully initialized.", "green")
     except Exception as e:
-        print(f"Error initializing trainer: {e}")
+        print_debug_message(f"Error initializing trainer: {e}", "red")
         return
 
     # Запуск обучения
- #   try:
-    print("Starting training...")
+    print_debug_message("Starting training...", "yellow")
     trainer.run(epochs=train_epochs, evaluate_every=learning_steps_per_epoch)
-    print("Training finished!")
- #   except Exception as e:
- #       print(f"Error during training: {e}")
+    print_debug_message("Training finished!", "green")
 
-    print("======================================")
-    print("Script finished execution.")
+    print_debug_message("Script finished execution.", "blue")
 
 
 if __name__ == "__main__":

@@ -1,15 +1,19 @@
 import vizdoom as vzd
 import os
+from termcolor import colored
+from colorama import init
 
-def center_text(text):
-    """Возвращает текст, центрированный относительно ширины терминала."""
-    terminal_width = os.get_terminal_size().columns
-    # Считаем отступ, чтобы текст был в центре
-    padding = max((terminal_width - len(text)) // 2, 0)
-    return ' ' * padding + text
+# Инициализация colorama для поддержки цветного вывода
+init(autoreset=True)
+
+def print_debug_message(message, color="cyan"):
+    line = "=" * 50
+    print(f"\n{colored(line.center(80), color)}")
+    print(colored(message.center(80), color))
+    print(f"{colored(line.center(80), color)}\n")
 
 def create_simple_game(config_file_path):
-    print(center_text("Initializing doom..."))
+    print_debug_message("Initializing Doom...", color="green")
     
     game = vzd.DoomGame()
     game.load_config(config_file_path)
@@ -19,8 +23,6 @@ def create_simple_game(config_file_path):
     game.set_screen_resolution(vzd.ScreenResolution.RES_640X480)
     game.init()
     
-    print(center_text("=" * 60))
-    print(center_text("Doom initialized."))
-    print(center_text("=" * 60))
+    print_debug_message("Doom initialized.", color="green")
 
     return game
