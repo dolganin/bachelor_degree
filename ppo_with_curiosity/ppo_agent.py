@@ -63,7 +63,7 @@ class PPOAgent(RLAgent):
             image_channels=3,  # Предполагается RGB; изменить при необходимости
             image_height=120,
             image_width=130,       # Измените в соответствии с вашей средой
-            patch_size=2,
+            patch_size=10,
             embedding_dim=120,
             num_heads=8,
             num_layers=6,
@@ -128,55 +128,47 @@ class PPOAgent(RLAgent):
         return intrinsic_reward
 
     def train_agent(self):
-        """
-        Обучение Policy Network и Value Network на основе собранных данных из буфера памяти.
-
-        Returns:
-            tuple: Значения потерь для Policy Network и Value Network.
-        """
         if len(self.forward_replay_buffer) < self.batch_size:
-            return 0.0, 0.0  # Недостаточно данных для обучения
+            return 0.0, 0.0
 
-        # Получение данных из буфера
-        batch = random.sample(self.memory, self.batch_size)
-        states, actions, rewards, combined_rewards, log_probs, next_states, dones = zip(*batch)
-        
-        states = torch.FloatTensor(states).to(self.device)            # (batch_size, C, H, W)
-        actions = torch.LongTensor(actions).unsqueeze(1).to(self.device)  # (batch_size, 1)
-        rewards = torch.FloatTensor(rewards).to(self.device)          # (batch_size,)
-        combined_rewards = torch.FloatTensor(combined_rewards).to(self.device)  # (batch_size,)
-        log_probs = torch.FloatTensor(log_probs).to(self.device)      # (batch_size,)
-        next_states = torch.FloatTensor(next_states).to(self.device)  # (batch_size, C, H, W)
-        dones = torch.FloatTensor(dones).to(self.device)            # (batch_size,)
-        
-        # Вычисление значений и преимуществ
-        values = self.value_net(states).squeeze()                    # (batch_size,)
-        next_values = self.value_net(next_states).squeeze()          # (batch_size,)
-        advantages = combined_rewards + self.discount * next_values * (1 - dones) - values
-        advantages = advantages.detach()
-        returns = combined_rewards + self.discount * next_values * (1 - dones)
-        
+        states, actions, next_states, rewards, combined_rewards, log_probs, dones = \
+            self.forward_replay_buffer.sample(self.batch_size)
+
+        states, actions, next_states, rewards, combined_rewards, log_probs, dones = \
+            states.to(self.device), actions.to(self.device), next_states.to(self.device), \
+            rewards.to(self.device), combined_rewards.to(self.device), log_probs.to(self.device), dones.to(self.device)
+
+        values = self.value_net(states).squeeze()
+        next_values = self.value_net(next_states).squeeze()
+        advantages = (combined_rewards + self.discount_factor * next_values * (1 - dones.float()) - values).detach()
+        returns = combined_rewards + self.discount_factor * next_values * (1 - dones.float())
+
         # Обновление Value Network
         value_loss = nn.MSELoss()(values, returns)
         self.value_optimizer.zero_grad()
         value_loss.backward()
         self.value_optimizer.step()
-        
+
         # Обновление Policy Network
         mean, std = self.policy_net(states)
+
         dist = Normal(mean, std)
-        new_log_probs = dist.log_prob(actions.squeeze(1)).sum(dim=-1)
+
+        if actions.dim() == 1:
+            actions = actions.unsqueeze(-1).expand_as(mean)
+
+        new_log_probs = dist.log_prob(actions).sum(dim=-1)
         entropy = dist.entropy().sum(dim=-1).mean()
-        
+
         ratio = torch.exp(new_log_probs - log_probs)
         surr1 = ratio * advantages
         surr2 = torch.clamp(ratio, 1.0 - self.clip_epsilon, 1.0 + self.clip_epsilon) * advantages
         policy_loss = -torch.min(surr1, surr2).mean() - self.entropy_coef * entropy
-        
+
         self.policy_optimizer.zero_grad()
         policy_loss.backward()
         self.policy_optimizer.step()
-        
+
         return policy_loss.item(), value_loss.item()
 
     def update_forward_model(self):
@@ -187,8 +179,8 @@ class PPOAgent(RLAgent):
             return 0.0  # Недостаточно данных для обучения Forward Model
 
         # Получение данных из Replay Buffer
-        batch = random.sample(self.forward_replay_buffer, self.batch_size)
-        states, actions, next_states = zip(*batch)
+        states, actions, next_states, rewards, combined_rewards, log_probs, dones = \
+            self.forward_replay_buffer.sample(self.batch_size)
         
         states = torch.FloatTensor(states).to(self.device)         # (batch_size, C, H, W)
         actions = torch.FloatTensor(actions).to(self.device)       # (batch_size, action_dim)

@@ -85,7 +85,7 @@ class ForwardModelCNN(nn.Module):
 
         # # Примените устройство (например, 'cuda:0') в функции action_to_one_hot
         # one_hot_action = action_to_one_hot(action, device=state.device)  # Передаём устройство, на котором находится state
-        
+
         # Пропуск действия через полносвязный слой
         action_embedding = self.action_fc(action)  # (batch_size, 512)
         # Объединение признаков состояния и действия

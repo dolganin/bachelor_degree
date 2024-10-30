@@ -58,12 +58,16 @@ class PPOTrainer(TrainerRL):
         """
         Основной цикл обучения агента для одного эпизода с использованием PPO with Curiosity.
         """
-        loss_lst = []
+        loss_dict = {}  # Используем словарь для хранения лоссов
         self.env.new_episode()
         train_scores = []
         global_step = 0
         total_reward = 0.0
         total_intrinsic = 0.0
+
+        average_value_loss = 0.0
+        average_policy_loss = 0.0
+        average_forward_loss = 0.0
         
         for _ in trange(steps_per_epoch, leave=False, desc=f"Epoch {episode+1}"):
             # Получение и предобработка текущего состояния
@@ -73,26 +77,29 @@ class PPOTrainer(TrainerRL):
             # Логирование видеофрейма
             temporal_state = np.array(raw_state, dtype=np.uint8)
             if temporal_state.shape[-1] == 3:
-                # Меняем порядок каналов с RGB на BGR, если необходимо
                 temporal_state = temporal_state[..., ::-1]  # Меняем порядок на BGR
 
             # Изменение размера изображения до 1280x720
             temporal_state = cv2.resize(temporal_state, (1280, 720), interpolation=cv2.INTER_LINEAR)
-            
-            #new_state = np.repeat(temporal_state[:, :, np.newaxis], 3, axis=2)
             self.video_logger.add_frame(temporal_state)
+
+            publish_data(
+                array=temporal_state, 
+                epoch=episode, 
+                loss=np.mean([average_policy_loss, average_value_loss, average_forward_loss]),
+                mean_reward=np.array(train_scores).mean() if train_scores else 0.0, 
+                mode="Train"
+            )
             
             # Выбор действия
             action_distribution, action_log_prob = self.agent.get_action(state)
             
             # Для дискретного набора действий, округляем до ближайшего индекса
             if self.actions is not None:
-                # В случае дискретных действий
                 action_distribution = torch.Tensor(action_distribution)
                 selected_action_idx = int(torch.argmax(action_distribution).item())
                 selected_action = self.actions[selected_action_idx]
             else:
-                # Для непрерывных действий
                 selected_action = action_distribution.detach().cpu().numpy()
             
             # Выполнение действия в среде
@@ -105,8 +112,7 @@ class PPOTrainer(TrainerRL):
                 next_raw_state = self.env.get_state().screen_buffer
                 next_state = preprocess(next_raw_state, resolution=self.resolution)
             else:
-                next_state = np.zeros((1, self.resolution[0], self.resolution[1]), dtype=np.float32)
-            
+                next_state = np.zeros((3, self.resolution[0], self.resolution[1]), dtype=np.float32)
             
             # Вычисление внутреннего вознаграждения
             intrinsic_reward = self.agent.compute_intrinsic_reward(state, action_distribution, next_state)
@@ -114,50 +120,38 @@ class PPOTrainer(TrainerRL):
             combined_reward = reward + self.agent.lambda_intrinsic * intrinsic_reward
             
             # Сохранение перехода в память агента и буфер воспроизведения
-            self.agent.append_memory(state, selected_action_idx, next_state, reward, combined_reward, action_log_prob, done)
-            
-            # Логирование данных (например, отправка в Kafka)
+            self.agent.append_memory(state, action_distribution, next_state, reward, combined_reward, action_log_prob, done)
             
             global_step += 1
             
             # Обучение агента, если буфер заполнен
-            if global_step > self.agent.batch_size and len(self.agent.memory) >= self.agent.batch_size:
+            if global_step > self.agent.batch_size and len(self.agent.forward_replay_buffer) >= self.agent.batch_size:
                 policy_loss, value_loss = self.agent.train_agent()
-                loss_lst.append((policy_loss, value_loss))
+                # Сохраняем лоссы в словарь
+                loss_dict['policy_loss'] = loss_dict.get('policy_loss', []) + [policy_loss]
+                loss_dict['value_loss'] = loss_dict.get('value_loss', []) + [value_loss]
             
             # Завершение эпизода
             if done:
                 total_episode_reward = self.env.get_total_reward()
                 train_scores.append(total_episode_reward)
-                self.env.new_episode()
-                break
-        
+                self.env.new_episode()    
+
         # Обновление Forward Model
         forward_loss = self.agent.update_forward_model()
         if forward_loss > 0.0:
-            loss_lst.append(('Forward Loss', forward_loss))
+            loss_dict['forward_loss'] = loss_dict.get('forward_loss', []) + [forward_loss]
         
         # Логирование прогресса
-        average_policy_loss = np.mean([loss[0] for loss in loss_lst if isinstance(loss, tuple) and len(loss) == 2]) if loss_lst else 0.0
-        average_value_loss = np.mean([loss[1] for loss in loss_lst if isinstance(loss, tuple) and len(loss) == 2]) if loss_lst else 0.0
-        average_forward_loss = np.mean([loss[1] for loss in loss_lst if isinstance(loss, tuple) and len(loss) == 2]) if loss_lst else 0.0
-        
-        publish_data(
-                array=temporal_state, 
-                epoch=episode, 
-                loss=np.mean(loss_lst),
-                mean_reward=np.array(train_scores).mean() if train_scores else 0.0, 
-                mode="Train"
-            )
-
-        self.log_metrics()
-
+        average_policy_loss = np.mean(loss_dict['policy_loss']) if 'policy_loss' in loss_dict else 0.0
+        average_value_loss = np.mean(loss_dict['value_loss']) if 'value_loss' in loss_dict else 0.0
+        average_forward_loss = np.mean(loss_dict['forward_loss']) if 'forward_loss' in loss_dict else 0.0
 
         print(f"Episode {episode+1}, Reward: {total_reward:.2f}, Intrinsic: {total_intrinsic:.2f}, "
               f"Policy Loss: {average_policy_loss:.4f}, Value Loss: {average_value_loss:.4f}, "
               f"Forward Loss: {average_forward_loss:.4f}")
         
-        return total_reward, np.array(loss_lst)
+        return total_reward, loss_dict
 
 
 

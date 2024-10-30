@@ -49,15 +49,18 @@ class ReplayBuffer:
         """
         batch = random.sample(self.buffer, batch_size)
         states, actions, next_states, rewards, combined_rewards, action_log_probs, dones = zip(*batch)
+
         return (
-            torch.FloatTensor(states),
-            torch.FloatTensor(actions),
-            torch.FloatTensor(next_states),
+            torch.stack([torch.FloatTensor(state) for state in states]),            # Преобразуем каждый элемент
+            torch.stack([torch.FloatTensor(action) for action in actions]),                                # Оборачиваем action в тензор (batch_size, 1)
+            torch.stack([torch.FloatTensor(next_state) for next_state in next_states]),
             torch.FloatTensor(rewards),
             torch.FloatTensor(combined_rewards),
             torch.FloatTensor(action_log_probs),
             torch.BoolTensor(dones)
         )
+
+
 
     
     def __len__(self):

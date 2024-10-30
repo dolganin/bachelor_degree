@@ -7,6 +7,7 @@ import numpy as np
 from server_consumer.broker_kafka import publish_data
 import cv2
 from torch import argmax, Tensor
+from colorama import Fore, Style
 
 
 class TrainerRL(ABC):
@@ -94,9 +95,9 @@ class TrainerRL(ABC):
         """
         pass
 
-    def log_metrics(self, epoch: int = 0, mean_reward: float = float("NaN"), min_reward: float = float("NaN"), \
-                    max_reward: float = float("NaN"), std_reward: float = float("NaN"), mean_loss: float = None, \
-                        forward_loss: float = None, policy_loss: float = None, value_loss: float = None) -> None:
+    def log_metrics(self, epoch: int = 0, mean_reward: float = float("NaN"), std_reward: float = float("NaN"), \
+                    mean_loss: float = None, forward_loss: float = None, \
+                        policy_loss: float = None, value_loss: float = None) -> None:
         """
         Логгирование метрик обучения, таких как награды и потери.
 
@@ -114,7 +115,7 @@ class TrainerRL(ABC):
 
         print("Metrics of model was logged to tensorboard!")
 
-    def run(self, epochs: int = 0, evaluate_every: int = 1) -> None:
+    def run(self, epochs: int = 0, evaluate_every: int = 100) -> None:
         """
         Полный процесс обучения с периодической оценкой.
 
@@ -123,26 +124,39 @@ class TrainerRL(ABC):
             evaluate_every: Частота оценок после определенного количества эпизодов.
         """
         max_reward = 0.0
-        for epoch in range(epochs):
-            start_time = time()
-            test_scores = []
 
-            # Запуск тренировки на одном эпизоде
-            reward, loss_lst = self.train(epoch, steps_per_epoch=self.steps_per_epoch)
-            self.total_rewards.append(reward)
-            
-            # Периодическая оценка
-            if epoch % evaluate_every == 0:
-                print("\nTesting...")
-                test_scores = self.evaluate()
-            
-            # Логгирование результатов
-            test_scores = np.array(test_scores)
+        # Настройка цветного текста
+        print(Fore.GREEN + "Starting training..." + Style.RESET_ALL)
 
-            self.log_metrics(epoch, 
-                             mean_reward=test_scores.mean(), 
-                             std_reward=test_scores.std(),
-                             mean_loss=loss_lst.mean())
-            print("Total elapsed time: %.2f minutes" % ((time() - start_time) / 60.0))
-        
+        # Прогресс-бар для отслеживания эпох
+        with trange(epochs, desc="Training", unit="epoch", bar_format='{l_bar}{bar:20}{r_bar}{bar:-20b}') as pbar:
+            for epoch in pbar:
+                start_time = time()
+                test_scores = []
+
+                # Запуск тренировки на одном эпизоде
+                reward, loss_lst = self.train(epoch, steps_per_epoch=self.steps_per_epoch)
+                self.total_rewards.append(reward)
+
+                # Обновление прогресс-бара с описанием
+                pbar.set_postfix(epoch=epoch + 1, reward=reward)
+
+                # Периодическая оценка
+                if epoch % evaluate_every == 0 and epoch != 0:
+                    print(Fore.YELLOW + "\nTesting..." + Style.RESET_ALL)
+                    test_scores = self.evaluate()
+
+                    # Логгирование результатов
+                    test_scores = np.array(test_scores)
+
+                    self.log_metrics(epoch, 
+                                    mean_reward=test_scores.mean(), 
+                                    std_reward=test_scores.std(),
+                                    mean_loss=loss_lst.mean())
+
+                    print(Fore.CYAN + "Total elapsed time: %.2f minutes" % ((time() - start_time) / 60.0) + Style.RESET_ALL)
+
+                # Обновление прогресс-бара
+                pbar.update(1)
+
         self.env.close()

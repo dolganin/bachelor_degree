@@ -2,10 +2,10 @@ import cv2
 import numpy as np
 
 class VideoLogger:
-    def __init__(self, filepath, fps=7):
+    def __init__(self, filepath, fps=5):
         """
         Инициализация видеозаписи.
-        
+
         Args:
             filepath: Путь для сохранения видео.
             fps: Частота кадров.
@@ -30,8 +30,8 @@ class VideoLogger:
 
         height, width, _ = self.frames[0].shape
         
-        # Используем mp4v кодек для формата mp4
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        # Используем VP8 кодек для формата webm
+        fourcc = cv2.VideoWriter_fourcc(*'VP80')
         out = cv2.VideoWriter(self.filepath, fourcc, self.fps, (width, height))
 
         for frame in self.frames:

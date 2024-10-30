@@ -34,8 +34,8 @@ def print_parameters_table(parameters: dict):
 
 def main() -> None:
     # Устройство
-    #DEVICE = 'cuda:0' if is_available() else 'cpu'
-    DEVICE = 'cpu'
+    DEVICE = 'cuda:0' if is_available() else 'cpu'
+    #DEVICE = 'cpu'
     print_debug_message(f"Device selected for training: {DEVICE}", "green")
 
     parser = ArgumentParser(description='Bachelor Degree Script')
@@ -163,12 +163,12 @@ def main() -> None:
 
     # Запуск обучения
     print_debug_message("Starting training...", "yellow")
-    try:
-        trainer.run(epochs=train_epochs, evaluate_every=learning_steps_per_epoch)
-    except Exception as e:
-        trainer.save_model(weights)
-        print_debug_message(f"Error training the agent: {e}", "red")
-    print_debug_message("Training finished!", "green")
+#    try:
+    trainer.run(epochs=train_epochs, evaluate_every=learning_steps_per_epoch)
+#    except Exception as e:
+#        trainer.save_model(weights)
+#        print_debug_message(f"Error training the agent: {e}", "red")
+#    print_debug_message("Training finished!", "green")
 
     print_debug_message("Script finished execution.", "blue")
 
