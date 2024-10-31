@@ -162,6 +162,8 @@ _vizdoom.ini
 *.pth
 *.webm
 *.mp4
+*.avi
+*.wmv
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

@@ -4,34 +4,34 @@ import numpy as np
 class VideoLogger:
     def __init__(self, filepath, fps=5):
         """
-        Инициализация видеозаписи.
+        Initializes video logging.
 
         Args:
-            filepath: Путь для сохранения видео.
-            fps: Частота кадров.
+            filepath: Path for saving the video.
+            fps: Frames per second.
         """
         self.filepath = filepath
         self.fps = fps
-        self.frames = []  # Список для хранения кадров
+        self.frames = []  # List to store frames
 
     def add_frame(self, frame):
-        """Добавляет кадр в видеопоток."""
-        # Проверяем, что кадр в правильном формате
+        """Adds a frame to the video stream."""
+        # Check if the frame is in the correct format
         if frame.dtype != np.uint8:
-            frame = (frame * 255).astype(np.uint8)  # Преобразование к uint8, если необходимо
-        # Кадры подаются в формате BGR, поэтому не нужно делать преобразование
+            frame = (frame * 255).astype(np.uint8)  # Convert to uint8 if necessary
+        # Frames are expected in BGR format, no need to convert
         self.frames.append(frame)
 
     def save(self):
-        """Сохраняет видео на диск."""
+        """Saves the video to disk."""
         if not self.frames:
-            print("Нет кадров для сохранения!")
+            print("No frames to save!")
             return
 
         height, width, _ = self.frames[0].shape
         
-        # Используем VP8 кодек для формата webm
-        fourcc = cv2.VideoWriter_fourcc(*'VP80')
+        # Using XVID codec for AVI format
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
         out = cv2.VideoWriter(self.filepath, fourcc, self.fps, (width, height))
 
         for frame in self.frames:
@@ -41,5 +41,5 @@ class VideoLogger:
         print(f"Gameplay of agent is saved to {self.filepath}")
 
     def clear(self):
-        """Очищает сохраненные кадры."""
+        """Clears saved frames."""
         self.frames.clear()

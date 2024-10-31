@@ -126,7 +126,6 @@ class TrainerRL(ABC):
         max_reward = 0.0
 
         # Настройка цветного текста
-        print(Fore.GREEN + "Starting training..." + Style.RESET_ALL)
 
         # Прогресс-бар для отслеживания эпох
         with trange(epochs, desc="Training", unit="epoch", bar_format='{l_bar}{bar:20}{r_bar}{bar:-20b}') as pbar:
@@ -149,10 +148,21 @@ class TrainerRL(ABC):
                     # Логгирование результатов
                     test_scores = np.array(test_scores)
 
+                    forward_loss=np.array(loss_lst["forward_loss"]).mean()
+                    policy_loss=np.array(loss_lst["policy_loss"]).mean()
+                    value_loss=np.array(loss_lst["value_loss"]).mean()
+                    mean_loss = (forward_loss+policy_loss+value_loss)/3
+
+                    
+
                     self.log_metrics(epoch, 
                                     mean_reward=test_scores.mean(), 
                                     std_reward=test_scores.std(),
-                                    mean_loss=loss_lst.mean())
+                                    forward_loss=forward_loss,
+                                    policy_loss=policy_loss,
+                                    value_loss=value_loss,
+                                    mean_loss=mean_loss
+                                    )
 
                     print(Fore.CYAN + "Total elapsed time: %.2f minutes" % ((time() - start_time) / 60.0) + Style.RESET_ALL)
 

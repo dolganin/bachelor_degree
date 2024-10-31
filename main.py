@@ -13,6 +13,8 @@ from argparse import ArgumentParser
 from itertools import product
 from torch.cuda import is_available
 from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
+import signal
 
 # Инициализация colorama
 init(autoreset=True)
@@ -32,6 +34,28 @@ def print_parameters_table(parameters: dict):
         print(f"{key:<20}: {value}")
     print(colored("=" * 60, "yellow"))
 
+def timeout_handler(signum, frame):
+    raise TimeoutError
+
+# Функция для получения названия видео с таймаутом
+def get_video_filename(time):
+    print(colored(f"Enter the name for the video file (you have {time} seconds):", "yellow"))
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(time)  # Устанавливаем таймер на 30 секунд
+    try:
+        name = input("Filename: ")
+        signal.alarm(0)  # Сбрасываем таймер, если ввод успешен
+    except TimeoutError:
+        print(colored("Time is up! Generating default filename.", "red"))
+        # Форматируем текущую дату как `day_month` для названия файла
+        date_str = datetime.now().strftime("%d_%m")
+        name = f"ppo_c_{date_str}"
+    return f"server_consumer/static/gameplay/{name}.avi"
+
+def get_default_name(prefix):
+    date_str = datetime.now().strftime("%d_%m")
+    return f"{prefix}_{date_str}"
+
 def main() -> None:
     # Устройство
     DEVICE = 'cuda:0' if is_available() else 'cpu'
@@ -40,14 +64,23 @@ def main() -> None:
 
     parser = ArgumentParser(description='Bachelor Degree Script')
     parser.add_argument('-y', '--yaml', type=str, help='Path to yaml file', default="ppobase_config")
-    parser.add_argument('-r', '--runname', type=str, help='Folder name for run', default="runs/run_0")
-    parser.add_argument('-w', '--weights', type=str, help='Path to model weights', default="weigths/model")
-    parser.add_argument('-d', '--debug', type=bool, help='Debug mode flag', default=False)
-    parser.add_argument('-t', '--test', type=bool, help='Test mode flag', default=False)
+    parser.add_argument('-r', '--runname', type=str, help='Folder name for run', default=None)
+    parser.add_argument('-w', '--weights', type=str, help='Path to model weights', default=None)
+    parser.add_argument('-d', '--debug', action='store_true', help='Debug mode flag')
+    parser.add_argument('-t', '--test', action='store_true', help='Test mode flag')
+    parser.add_argument('--timer', type=int, help="Time for timer in awaiting", default=5)
     
     args = parser.parse_args()
-    yaml, runname, weights, debug, test = args.yaml, args.runname, args.weights, args.debug, args.test
-    
+
+
+    yaml, runname, weights, debug, test, timer = (args.yaml, args.runname, args.weights, args.debug, 
+                                                  args.test, args.timer)
+
+    # Устанавливаем имена по умолчанию, если они не заданы
+    runname = f"runs/{args.runname}" if args.runname else f"runs/{get_default_name('run')}"
+    weights = f"weights/{args.weights}.pt" if args.weights else f"weights/{get_default_name('model')}"
+
+    print(weights)
     # Параметры для вывода в таблице
     parameters = {
         "YAML Config Path": yaml,
@@ -78,12 +111,14 @@ def main() -> None:
 
     # Распаковка параметров из конфигурации
     try:
-        (learning_rate, batch_size, replay_memory_size, discount_factor, train_epochs, 
-        frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch, 
-        save_model, weight_decay, load_model, out_video_file, lambda_intrinsic, entropy_coef, 
-        clip_epsilon, hidden_dim) = constants(config)
+        (learning_rate, batch_size, replay_memory_size, discount_factor, train_epochs,
+            frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch,
+            weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
+            patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, 
+            ex_loss, window_size, evaluate_every) = constants(config)
         
         # Параметры конфигурации
+# Параметры конфигурации
         config_parameters = {
             "Learning Rate": learning_rate,
             "Batch Size": batch_size,
@@ -91,10 +126,26 @@ def main() -> None:
             "Discount Factor": discount_factor,
             "Train Epochs": train_epochs,
             "Frame Repeat": frame_repeat,
-            "Steps per Epoch": learning_steps_per_epoch,
+            "Learning Steps per Epoch": learning_steps_per_epoch,
+            "Configuration Path": cfg_path,
             "Resolution": resolution,
-            "Episodes per Epoch": test_episodes_per_epoch
+            "Test Episodes per Epoch": test_episodes_per_epoch,
+            "Weight Decay": weight_decay,
+            "Lambda Intrinsic": lambda_intrinsic,
+            "Entropy Coefficient": entropy_coef,
+            "Clip Epsilon": clip_epsilon,
+            "Hidden Dimension": hidden_dim,
+            "Channels": channels,
+            "Patch Size": patch_size,
+            "Dropout Rate": dropout_rate,
+            "Embedding Dimension": embedding_dim,
+            "Number of Heads": num_heads,
+            "Number of Layers": num_layers,
+            "MLP Dimension": mlp_dim,
+            "Extra Loss": ex_loss,
+            "Window Size": window_size
         }
+
         
         print_debug_message("Parameters extracted from config:", "yellow")
         print_parameters_table(config_parameters)
@@ -121,12 +172,20 @@ def main() -> None:
             discount_factor=discount_factor,
             lr=learning_rate,
             device=DEVICE,
-            model_savefile=weights,
             lambda_intrinsic=lambda_intrinsic,
             entropy_coef=entropy_coef,
             clip_epsilon=clip_epsilon,
-            hidden_dim=hidden_dim
-        )
+            hidden_dim=hidden_dim,
+            screen_resolution=resolution,       # Передаем разрешение экрана
+            channels=channels,                         # RGB-каналы
+            patch_size=patch_size,                      # Размер патча, можно изменить по необходимости
+            dropout_rate=dropout_rate,                   # Дефолтное значение, можно изменить по конфигурации
+            embedding_dim=embedding_dim,                  # Задает размерность эмбеддинга
+            num_heads=num_heads,                        # Задает количество голов в multi-head attention
+            num_layers=num_layers,                       # Задает количество слоев в трансформере
+            mlp_dim=mlp_dim,                        # Размерность MLP в трансформере
+            ex_loss=ex_loss                         # Задает коэффициент внешней потери
+)
         print_debug_message("Agent successfully initialized.", "green")
     except Exception as e:
         print_debug_message(f"Error initializing agent: {e}", "red")
@@ -134,8 +193,9 @@ def main() -> None:
 
     # Инициализация вспомогательных объектов
     try:
+        out_video_file = get_video_filename(timer)  # Используем новую функцию для получения имени файла
         vlogger = VideoLogger(filepath=out_video_file)
-        evaluator = AgentEvaluator(window_size=100)
+        evaluator = AgentEvaluator(window_size=window_size)
         print_debug_message("Video Logger and Agent Evaluator initialized.", "green")
     except Exception as e:
         print_debug_message(f"Error initializing logger/evaluator: {e}", "red")
@@ -154,7 +214,8 @@ def main() -> None:
             actions=actions,
             test_episodes_per_epoch=test_episodes_per_epoch,
             video_logger=vlogger,
-            agent_evaluator=evaluator
+            agent_evaluator=evaluator,
+            model_savefile=weights
         )
         print_debug_message("Trainer successfully initialized.", "green")
     except Exception as e:
@@ -163,12 +224,15 @@ def main() -> None:
 
     # Запуск обучения
     print_debug_message("Starting training...", "yellow")
-#    try:
-    trainer.run(epochs=train_epochs, evaluate_every=learning_steps_per_epoch)
-#    except Exception as e:
-#        trainer.save_model(weights)
-#        print_debug_message(f"Error training the agent: {e}", "red")
-#    print_debug_message("Training finished!", "green")
+    if not debug:
+        try:
+            trainer.run(epochs=train_epochs, evaluate_every=evaluate_every)
+        except Exception as e:
+            trainer.save_model(weights)
+            print_debug_message(f"Error training the agent: {e}", "red")
+        print_debug_message("Training finished!", "green")
+    if debug:
+        trainer.run(epochs=train_epochs, evaluate_every=evaluate_every)
 
     print_debug_message("Script finished execution.", "blue")
 

@@ -48,7 +48,7 @@ class PPOTrainer(TrainerRL):
         self.steps_per_epoch = steps_per_epoch
         self.actions = actions
         self.test_episodes_per_epoch = test_episodes_per_epoch
-        self.model_savefile = model_savefile if model_savefile is not None else "model.pth"
+        self.model_savefile = model_savefile
         
         # Инициализация памяти с заданной емкостью и затуханием
         self.memory = ReplayBuffer(capacity=buffer_capacity, momentum=buffer_momentum)
@@ -69,7 +69,7 @@ class PPOTrainer(TrainerRL):
         average_policy_loss = 0.0
         average_forward_loss = 0.0
         
-        for _ in trange(steps_per_epoch, leave=False, desc=f"Epoch {episode+1}"):
+        for _ in range(steps_per_epoch):
             # Получение и предобработка текущего состояния
             raw_state = self.env.get_state().screen_buffer
             state = preprocess(raw_state, resolution=self.resolution)
@@ -122,7 +122,7 @@ class PPOTrainer(TrainerRL):
             # Сохранение перехода в память агента и буфер воспроизведения
             self.agent.append_memory(state, action_distribution, next_state, reward, combined_reward, action_log_prob, done)
             
-            global_step += 1
+            global_step += 128
             
             # Обучение агента, если буфер заполнен
             if global_step > self.agent.batch_size and len(self.agent.forward_replay_buffer) >= self.agent.batch_size:
@@ -147,12 +147,12 @@ class PPOTrainer(TrainerRL):
         average_value_loss = np.mean(loss_dict['value_loss']) if 'value_loss' in loss_dict else 0.0
         average_forward_loss = np.mean(loss_dict['forward_loss']) if 'forward_loss' in loss_dict else 0.0
 
-        print(f"Episode {episode+1}, Reward: {total_reward:.2f}, Intrinsic: {total_intrinsic:.2f}, "
+        print(f"Reward: {total_reward:.2f}, Intrinsic: {total_intrinsic:.2f}, "
               f"Policy Loss: {average_policy_loss:.4f}, Value Loss: {average_value_loss:.4f}, "
               f"Forward Loss: {average_forward_loss:.4f}")
         
         return total_reward, loss_dict
-
+    
 
 
     def save_model(self, path: str) -> None:

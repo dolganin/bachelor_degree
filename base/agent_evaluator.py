@@ -39,9 +39,9 @@ class AgentEvaluator:
         # Сравнение с текущим лучшим показателем и сохранение лучшего агента
         if score > self.best_score:
             self.best_score = score
-            self.best_agent_weights = trainer.save_model(path="weights/best_model/IEM_PPO")  # Сохраняем веса агента
+            self.best_agent_weights = trainer.save_model(path=trainer.model_savefile)  # Сохраняем веса агента
             print("New best ensemble saved with parameters:",
-                  f"Mean Reward: {mean_reward}, Std Reward: {std_reward}, Loss: {loss}")
+                  f"Mean Reward: {round(mean_reward, 2)}, Std Reward: {round(std_reward, 2)}, Loss: {round(loss, 2)}")
             trainer.video_logger.save()
         else:
             trainer.video_logger.clear()

@@ -4,26 +4,31 @@ learning_parameters:
   train_epochs: 100
   replay_memory_size: 5000
   batch_size: 128
-  test_episodes_per_epoch: 1000
+  test_episodes_per_epoch: 10
   frame_repeat: 96
   learning_steps_per_epoch: 50
   weight_decay: 0.007
+  hidden_dim: 512
+  evaluate_every: 4
+  window_size: 100
+  channels: 3
+
+ppo_parameters:
+  clip_param: 0.2
   lambda_intrinsic: 0.1
   entropy_coef: 0.1
   clip_epsiolon: 0.2
-  hidden_dim: 512
+  embedding_dim: 120       # Размерность эмбеддинга
+  num_heads: 8             # Количество голов в multi-head attention
+  num_layers: 6            # Число слоев в трансформере
+  mlp_dim: 256             # Размерность MLP слоя в трансформере
+  patch_size: 10
+  dropout_rate: 0.1
+  ex_loss: 0.0
 
 env_parameters:
-  resolution: [120, 130]
+  resolution: [120, 130]  # Высота и ширина экрана
   episodes_to_watch: 10
 
-meta_parameters:
-  out_video_file: "server_consumer/static/gameplay/best_ppo_30_10.webm"
-  save_model: True
-  load_model: False
-  skip_learning: False
 
 doom_cfg_path: "scenarios/defend_the_line.cfg"
-
-
-  

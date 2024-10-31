@@ -25,11 +25,20 @@ class PPOAgent(RLAgent):
                  discount_factor: float,
                  lr: float,
                  device: torch.device,
-                 model_savefile: str,
                  lambda_intrinsic: float = 0.1,
                  entropy_coef: float = 0.01,
                  clip_epsilon: float = 0.2,
-                 hidden_dim: int = 128):
+                 hidden_dim: int = 128,
+                 screen_resolution: tuple = None,
+                 channels: int = 3,
+                 patch_size: int = 10,
+                 dropout_rate: float = 0.1,
+                 embedding_dim: int = 120,
+                 num_heads: int = 8,
+                 num_layers: int = 6,
+                 mlp_dim: int = 256,
+                 ex_loss: float = 0.0
+                 ):
         """
         Инициализация PPOAgent с настройками для PPO with Curiosity.
 
@@ -57,27 +66,37 @@ class PPOAgent(RLAgent):
         self.batch_size = batch_size
         self.lr = lr
         self.discount_factor = discount_factor
+        self.screen_resolution = screen_resolution
+        self.channels = channels
+        self.patch_size = patch_size
+        self.dropout_rate = dropout_rate
+        self.embedding_dim = embedding_dim
+        self.num_heads = num_heads
+        self.num_layers = num_layers
+        self.mlp_dim = mlp_dim
+        self.ex_loss = ex_loss
+
         
         # Инициализация моделей
         self.shared_transformer = SharedTransformer(
-            image_channels=3,  # Предполагается RGB; изменить при необходимости
-            image_height=120,
-            image_width=130,       # Измените в соответствии с вашей средой
-            patch_size=10,
-            embedding_dim=120,
-            num_heads=8,
-            num_layers=6,
-            mlp_dim=256,
-            dropout=0.1
+            image_channels=self.channels,  # Предполагается RGB; изменить при необходимости
+            image_height=self.screen_resolution[0],
+            image_width=self.screen_resolution[1],       # Измените в соответствии с вашей средой
+            patch_size=self.patch_size,
+            embedding_dim=self.embedding_dim,
+            num_heads=self.num_heads,
+            num_layers=self.num_layers,
+            mlp_dim=self.mlp_dim,
+            dropout=self.dropout_rate
         ).to(self.device)
         
         self.policy_net = PolicyNetwork(self.shared_transformer, action_dim=self.action_size).to(self.device)
         self.value_net = ValueNetwork(self.shared_transformer).to(self.device)
         self.forward_model = ForwardModelCNN(
             action_dim=self.action_size,
-            image_channels=3,  # Предполагается RGB; изменить при необходимости
-            input_height=120,
-            input_width=130,      # Измените в соответствии с вашей средой
+            image_channels=self.channels,  # Предполагается RGB; изменить при необходимости
+            input_height=self.screen_resolution[0],
+            input_width=self.screen_resolution[1],      # Измените в соответствии с вашей средой
             hidden_dim=self.hidden_dim
         ).to(self.device)
         
@@ -129,7 +148,7 @@ class PPOAgent(RLAgent):
 
     def train_agent(self):
         if len(self.forward_replay_buffer) < self.batch_size:
-            return 0.0, 0.0
+            return self.ex_loss, self.ex_loss
 
         states, actions, next_states, rewards, combined_rewards, log_probs, dones = \
             self.forward_replay_buffer.sample(self.batch_size)

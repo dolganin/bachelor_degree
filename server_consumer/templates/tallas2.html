@@ -7,6 +7,89 @@
     <link rel="stylesheet" href="/static/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
     <style>
+
+    .hover-little-thing {
+        transition: width 0.5s;
+        width: 5vw;
+        max-width: 200px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        /* align-items: center; */
+        /* height: 100vh; */
+        /* text-align: center; */
+        text-shadow: 2px 2px 5px black;
+        /* border-bottom: 5px; */
+        /* border-right: 5px; */
+        border: 5px solid #ff47478c;
+        border-left: 0px;
+        border-radius: 0px 10px 10px 0px;
+        padding: 20px 10px;
+        background-color: rgba(0, 0, 0, 0.6);
+        display: flex;
+        /* flex-wrap: revert-layer; */
+        align-content: center;
+        /* justify-content: center; */
+        height: -webkit-fill-available;
+        align-items: center;
+    }
+
+    ul {
+        padding-left: 1vw;
+        /* display: flex; *//* flex-wrap: nowrap; *//* align-content: flex-start; */
+    }
+
+    .hover-little-thing:hover {
+        /* content-visibility: visible; */
+        /* content-visibility: visible; */
+        content-visibility: visible;
+        max-width: 200px;
+        width: 15vw;
+        
+        .urls { 
+            pointer-events: all;
+            visibility: visible;
+            opacity: 1;
+        }
+        /* content-visibility: visible; */
+    }
+
+
+    .urls {
+        pointer-events: none;
+        position: fixed;
+        left: 0;
+        opacity: 0;
+        transition: 
+            visibility 1s, opacity 0.3s;
+        top: 0;
+        margin-top: 5vh;
+    }
+
+    li {
+        text-align: center;
+        font-size: 2em;
+        list-style-type: none;
+        padding: inherit;
+        margin: inherit;
+        text-align: center;
+        display: flex;
+        /* justify-content: center; */
+    }
+
+    a {
+        color: #ffffff;
+        text-decoration: none;
+        /* visibility: hidden; */
+        text-align: center;
+    }
+
+    a:hover {
+        color:#ff47478c; 
+        text-decoration:none; 
+        cursor:pointer;  
+    }
+
         body {
             background-image: url('/static/resources/tallas2_background.jpg'); /* Фон для Tallas2 */
             background-size:cover;
@@ -22,20 +105,13 @@
             height: fit-content;
 
         }
-        h1 {
-            position: fixed;
-            left: 0;
-            top: 0;
-            text-align: center;
-            font-size: 2.5em; /* Увеличиваем размер заголовка */
-            height: 100%;
-        }
         .stats-container {
             display: flex;
             justify-content: center;
             flex-direction: column;
             align-items: center;
             margin: 20px 0;
+            position: fixed;
         }
         .stats {
             margin: 5px;
@@ -55,7 +131,6 @@
         }
         #best-video {
             width: 80vw; /* 80% от ширины экрана */
-            height: 60vh; /* Высота по пропорциям */
             max-width: 1280px; /* Максимальная ширина */
             max-height: 720px; /* Максимальная высота */
             border: 5px solid #00ccff; /* Цвет рамки */
@@ -96,7 +171,6 @@
     </style>
 </head>
 <body>
-    <h1>{{ server_name | capitalize }} Training Stream</h1>
     
     <div class="stats-container">
         <div class="mode" id="mode">Mode: N/A</div>
@@ -104,12 +178,30 @@
         <div class="stats" id="loss">Loss: N/A</div>
         <div class="stats" id="meanReward">Mean Reward: N/A</div>
     </div>
+<div class="hover-little-thing">
+    <div class="urls">
+    <ul>
+        <li><a href="/">Main page</a></li>
+        <li><a href="/tallas2">Tallas2 Stream</a></li>
+        <li><a href="/aurora">Aurora Stream</a></li>
+        <li><a href="/apollo2">Apollo2 Stream</a></li>
+    </ul>
+    </div>
+        <h1> Training Stream</h1> 
+    </div>
+    
+    <div class="stats-container">
+        <div class="mode" id="mode">Mode: Undefined</div>
+        <div class="stats" id="epoch">Epoch: Undefined</div>
+        <div class="stats" id="loss">Loss: NaN</div>
+        <div class="stats" id="meanReward">Mean Reward: NaN</div>
+    </div>
 
     <!-- Основной поток -->
     <img id="stream" alt="Video Stream" />
 
     <!-- Локальное видео для лучшего захода агента -->
-    <video id="best-video" controls autoplay muted loop width="fit-content">
+    <video id="best-video" controls="" autoplay="" muted="" loop="" width="fit-content">
         <source src="static/gameplay/best_ppo_30_10.webm" type="video/mp4" codecs="mp4v">
         Ваш браузер не поддерживает элемент <code>video</code>.
         
@@ -148,3 +240,5 @@
     </script>
 </body>
 </html>
+
+

@@ -31,24 +31,32 @@ def constants(yml: dict = None) -> List:
         learning_steps_per_epoch = yml["learning_parameters"]["learning_steps_per_epoch"]
         weight_decay = yml["learning_parameters"]["weight_decay"]
         test_episodes_per_epoch = yml["learning_parameters"]["test_episodes_per_epoch"]
-        lambda_intrinsic = yml["learning_parameters"]["lambda_intrinsic"]
-        entropy_coef = yml["learning_parameters"]["entropy_coef"]
-        clip_epsilon = yml["learning_parameters"]["clip_epsiolon"]
         hidden_dim = yml["learning_parameters"]["hidden_dim"]
-
-
-        save_model = yml["meta_parameters"]["save_model"]
-        load_model = yml["meta_parameters"]["load_model"]
-        out_video = yml["meta_parameters"]["out_video_file"]
+        channels = yml["learning_parameters"]["channels"]
+        window_size = yml["learning_parameters"]["window_size"]
+        evaluate_every = yml["learning_parameters"]["evaluate_every"]
         
+        embedding_dim = yml["ppo_parameters"]["embedding_dim"]
+        num_heads = yml["ppo_parameters"]["num_heads"]
+        num_layers = yml["ppo_parameters"]["num_layers"]
+        mlp_dim = yml["ppo_parameters"]["mlp_dim"]
+        patch_size = yml["ppo_parameters"]["patch_size"]
+        dropout_rate = yml["ppo_parameters"]["dropout_rate"]
+        ex_loss = yml["ppo_parameters"]["ex_loss"]
+        lambda_intrinsic = yml["ppo_parameters"]["lambda_intrinsic"]
+        entropy_coef = yml["ppo_parameters"]["entropy_coef"]
+        clip_epsilon = yml["ppo_parameters"]["clip_epsiolon"]
+
 
         resolution = yml["env_parameters"]["resolution"]
-        
+
         cfg_path = yml["doom_cfg_path"]
 
     else:
         raise Exception("Path to .yaml is None")
-    
-    return learning_rate, batch_size, replay_memory_size,discount_factor, train_epochs, \
-    frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch, \
-        save_model, weight_decay, load_model, out_video, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim
+
+    return  (learning_rate, batch_size, replay_memory_size, discount_factor, train_epochs,
+            frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch,
+            weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
+            patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, ex_loss, 
+            window_size, evaluate_every)
