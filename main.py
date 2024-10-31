@@ -12,7 +12,6 @@ import os
 from argparse import ArgumentParser
 from itertools import product
 from torch.cuda import is_available
-from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 import signal
 
@@ -98,6 +97,7 @@ def main() -> None:
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
         print_debug_message("Debug mode is off. Only errors will be displayed.", "red")
 
+    from torch.utils.tensorboard import SummaryWriter
     writter = SummaryWriter(log_dir=runname)
     print_debug_message(f"TensorBoard writer initialized at: {runname}", "green")
 

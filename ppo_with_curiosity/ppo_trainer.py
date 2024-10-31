@@ -122,10 +122,10 @@ class PPOTrainer(TrainerRL):
             # Сохранение перехода в память агента и буфер воспроизведения
             self.agent.append_memory(state, action_distribution, next_state, reward, combined_reward, action_log_prob, done)
             
-            global_step += 128
+            global_step += 1
             
             # Обучение агента, если буфер заполнен
-            if global_step > self.agent.batch_size and len(self.agent.forward_replay_buffer) >= self.agent.batch_size:
+            if global_step > self.agent.batch_size//10 and len(self.agent.forward_replay_buffer) >= self.agent.batch_size:
                 policy_loss, value_loss = self.agent.train_agent()
                 # Сохраняем лоссы в словарь
                 loss_dict['policy_loss'] = loss_dict.get('policy_loss', []) + [policy_loss]
