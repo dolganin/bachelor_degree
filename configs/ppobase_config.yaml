@@ -4,12 +4,12 @@ learning_parameters:
   train_epochs: 100                  # Количество эпох для обучения
   replay_memory_size: 4000           # Размер буфера для хранения опыта
   batch_size: 128                    # Размер батча для оптимизатора
-  test_episodes_per_epoch: 500        # Количество эпизодов для тестирования на каждой эпохе
+  test_episodes_per_epoch: 600        # Количество эпизодов для тестирования на каждой эпохе
   frame_repeat: 96                   # Количество кадров, повторяемых для каждого действия
-  learning_steps_per_epoch: 120       # Количество шагов обучения за каждую эпоху
+  learning_steps_per_epoch: 4000       # Количество шагов обучения за каждую эпоху
   weight_decay: 0.007                # Коэффициент регуляризации весов
   hidden_dim: 512                    # Размерность скрытого слоя нейронной сети
-  evaluate_every: 1                  # Частота оценки модели (через каждые N эпох)
+  evaluate_every: 5                  # Частота оценки модели (через каждые N эпох)
   window_size: 100                   # Размер окна для усреднения метрик
   channels: 3                        # Количество каналов во входных данных
 
@@ -29,4 +29,4 @@ ppo_parameters:
 env_parameters:
   resolution: [120, 130]             # Размер экрана (высота и ширина)
 
-doom_cfg_path: "scenarios/defend_the_line.cfg"  # Путь к файлу конфигурации Doom
+doom_cfg_path: "scenarios/basic.cfg"  # Путь к файлу конфигурации Doom
