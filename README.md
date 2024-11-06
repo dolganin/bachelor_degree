@@ -64,7 +64,6 @@ base/                   # Базовые модули
 configs/                # Конфигурационные файлы (YAML)
 main.py                 # Основной файл запуска
 create_kafka_topic.sh   # Скрипт для создания Kafka-топика
-__pycache__/            # Служебная директория Python
 ppo_with_curiosity/     # Модули PPO с реализацией любопытства
 q_learning/             # Реализация Q-learning для сравнения
 requirements.txt        # Файл зависимостей проекта
@@ -73,7 +72,6 @@ scenarios/              # Doom сценарии для RL среды
 server_consumer/        # Модуль для работы с серверной частью
 start_services.sh       # Скрипт запуска вспомогательных сервисов
 utilities/              # Утилиты и вспомогательные скрипты
-vizdoom.ini             # Конфигурационный файл VizDoom
 weights/                # Директория для хранения весов моделей
 ```
 ## Запуск
