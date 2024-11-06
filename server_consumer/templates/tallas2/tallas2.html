@@ -36,40 +36,11 @@
 
     <!-- Локальное видео для лучшего захода агента -->
     <video id="best-video" controls="" autoplay="" muted="" loop="" width="fit-content">
-        <source src="static/gameplay/best_ppo_30_10.webm" type="video/mp4" codecs="mp4v">
+        <source src="static/gameplay/best_video.webm" type="video/webm">
         Ваш браузер не поддерживает элемент <code>video</code>.
         
     </video>
     <a href="http://talos2.ru:21936" class="logs-button">Logs</a>
-
-    <!-- <script>
-          document.addEventListener("DOMContentLoaded", function() {
-            var socket = io();  // Подключение к WebSocket
-            
-            socket.on('new_frame', function(data) {
-                // Обновление основного потока
-                var img = document.getElementById('stream');
-                img.src = 'data:image/jpeg;base64,' + data.image;
-
-                document.getElementById('epoch').innerText = 'Epoch: ' + data.epoch;
-                document.getElementById('loss').innerText = 'Loss: ' + data.loss;
-                document.getElementById('meanReward').innerText = 'Mean Reward: ' + data.meanReward;
-                document.getElementById('mode').innerText = 'Mode: ' + data.mode;
-            });
-
-            socket.on('connect', function() {
-                console.log('Connected to server');
-            });
-
-            socket.on('disconnect', function() {
-                console.log('Disconnected from server');
-            });
-
-            socket.on('connect_error', function(error) {
-                console.error('Connection Error:', error);
-            });
-        });
-    </script> -->
 </body>
 </html>
 

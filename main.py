@@ -49,7 +49,7 @@ def get_video_filename(time):
         # Форматируем текущую дату как `day_month` для названия файла
         date_str = datetime.now().strftime("%d_%m")
         name = f"ppo_c_{date_str}"
-    return f"server_consumer/static/gameplay/{name}.avi"
+    return f"server_consumer/static/gameplay/{name}.webm"
 
 def get_default_name(prefix):
     date_str = datetime.now().strftime("%d_%m")

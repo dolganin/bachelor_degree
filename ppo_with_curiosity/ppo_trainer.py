@@ -167,7 +167,7 @@ class PPOTrainer(TrainerRL):
             'value_net_state_dict': self.agent.value_net.state_dict(),
             'forward_model_state_dict': self.agent.forward_model.state_dict()
         }, f"{path}.pth")
-        print(f"Models saved to {path}.pth")
+        print(f"MModels saved to {path}.pth")
 
     def load_model(self, path: str) -> None:
         """
