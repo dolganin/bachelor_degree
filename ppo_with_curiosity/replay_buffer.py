@@ -31,7 +31,7 @@ class ReplayBuffer:
             """
         # Применение затухания для всех предыдущих переходов
         self.buffer = deque([(s * self.momentum, a * self.momentum, ns * self.momentum, r * self.momentum, \
-                              cr*self.momentum, alp * self.momentum, d) for s, a, ns, r, cr, alp, d  in self.buffer], 
+                              cr * self.momentum, alp * self.momentum, d) for s, a, ns, r, cr, alp, d in self.buffer], 
                             maxlen=self.buffer.maxlen)
         
         # Добавление нового перехода
@@ -51,8 +51,8 @@ class ReplayBuffer:
         states, actions, next_states, rewards, combined_rewards, action_log_probs, dones = zip(*batch)
 
         return (
-            torch.stack([torch.FloatTensor(state) for state in states]),            # Преобразуем каждый элемент
-            torch.stack([torch.FloatTensor(action) for action in actions]),                                # Оборачиваем action в тензор (batch_size, 1)
+            torch.stack([torch.FloatTensor(state) for state in states]),
+            torch.stack([torch.FloatTensor(action) for action in actions]),
             torch.stack([torch.FloatTensor(next_state) for next_state in next_states]),
             torch.FloatTensor(rewards),
             torch.FloatTensor(combined_rewards),
@@ -60,8 +60,9 @@ class ReplayBuffer:
             torch.BoolTensor(dones)
         )
 
-
-
+    def clear(self):
+        """Полностью очищает буфер."""
+        self.buffer.clear()
     
     def __len__(self):
         return len(self.buffer)
