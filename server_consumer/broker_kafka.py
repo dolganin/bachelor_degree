@@ -6,7 +6,7 @@ import cv2
 
 # Конфигурация продюсера Kafka
 producer_config = {
-    'bootstrap.servers': '192.168.3.2:9092',
+    'bootstrap.servers': '0.0.0.0:9092',
 }
 
 producer = Producer(producer_config)

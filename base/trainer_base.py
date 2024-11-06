@@ -165,7 +165,7 @@ class TrainerRL(ABC):
                                     )
 
                     print(Fore.CYAN + "Total elapsed time: %.2f minutes" % ((time() - start_time) / 60.0) + Style.RESET_ALL)
-                    self.agent.forward_replay_buffer.clear()
+                    self.agent.forward_replay_buffer.clear_memory()
                     
                 # Обновление прогресс-бара
                 pbar.update(1)

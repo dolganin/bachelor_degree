@@ -15,23 +15,23 @@ class ReplayBuffer:
         self.buffer = deque(maxlen=capacity)
         self.momentum = momentum
     
-    def push(self, state: np.ndarray, action: int, next_state: np.ndarray, reward: float, \
+    def push(self, state: np.ndarray, action: int, next_state: np.ndarray, reward: float, 
              combined_reward: float, action_log_prob: np.ndarray, done: bool):
         """
-            Добавление нового перехода в буфер с применением коэффициента затухания для старых элементов.
+        Добавление нового перехода в буфер с применением коэффициента затухания для старых элементов.
 
-            Args:
-                state (np.ndarray): Текущее состояние.
-                action (np.ndarray): Действие агента.
-                next_state (np.ndarray): Следующее состояние.
-                reward (float): Награда за текущее действие.
-                combined_reward (float): Комбинированная награда.
-                action_log_prob (np.ndarray): Логарифм вероятности действия.
-                done (bool): Флаг завершения эпизода.
-            """
+        Args:
+            state (np.ndarray): Текущее состояние.
+            action (np.ndarray): Действие агента.
+            next_state (np.ndarray): Следующее состояние.
+            reward (float): Награда за текущее действие.
+            combined_reward (float): Комбинированная награда.
+            action_log_prob (np.ndarray): Логарифм вероятности действия.
+            done (bool): Флаг завершения эпизода.
+        """
         # Применение затухания для всех предыдущих переходов
-        self.buffer = deque([(s * self.momentum, a * self.momentum, ns * self.momentum, r * self.momentum, \
-                              cr * self.momentum, alp * self.momentum, d) for s, a, ns, r, cr, alp, d in self.buffer], 
+        self.buffer = deque([(s * self.momentum, a * self.momentum, ns * self.momentum, r * self.momentum,
+                              cr * self.momentum, alp * self.momentum, d) for s, a, ns, r, cr, alp, d in self.buffer],
                             maxlen=self.buffer.maxlen)
         
         # Добавление нового перехода
@@ -63,6 +63,17 @@ class ReplayBuffer:
     def clear(self):
         """Полностью очищает буфер."""
         self.buffer.clear()
+
+    def clear_memory(self):
+        """Очистка памяти после эпизода (для явного удаления больших объектов)."""
+        # Явно удаляем объекты в буфере
+        for entry in self.buffer:
+            # Если объекты в записи — это большие массивы или тензоры, можно явно их удалить
+            for item in entry[:3]:  # Для state, next_state, action_log_prob (если это большие объекты)
+                del item
+
+        # Очистка буфера
+        self.clear()
     
     def __len__(self):
         return len(self.buffer)
