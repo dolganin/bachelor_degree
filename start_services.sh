@@ -19,5 +19,7 @@ python /workspace/server_consumer/kafka_consumer.py &
 python /workspace/server_consumer/flask_server.py &
 python /workspace/main.py "$@" &
 
+tensorboard --logdir=/workspace/runs --port=6006 &
+
 # Ожидание завершения процессов
 wait
