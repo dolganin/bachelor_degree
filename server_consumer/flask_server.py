@@ -12,22 +12,22 @@ socketio = SocketIO(app)
 @app.route('/')
 def index():
     """Маршрут для хаба стримов."""
-    return render_template('hub.html')
+    return render_template('hub/hub.html')
 
 @app.route('/tallas2')
 def tallas2():
     """Маршрут для стрима tallas2."""
-    return render_template('tallas2.html')  # Обновлено для использования нового HTML файла
+    return render_template('tallas2/tallas2.html')  # Обновлено для использования нового HTML файла
 
 @app.route('/aurora')
 def aurora():
     """Маршрут для стрима aurora."""
-    return render_template('aurora.html')  # Обновлено для использования нового HTML файла
+    return render_template('aurora/aurora.html')  # Обновлено для использования нового HTML файла
 
 @app.route('/apollo2')
 def apollo2():
     """Маршрут для стрима apollo2."""
-    return render_template('apollo2.html')  # Обновлено для использования нового HTML файла
+    return render_template('apollo2/apollo2.html')  # Обновлено для использования нового HTML файла
 
 @app.route('/update_frame', methods=['POST'])
 def update_frame():
