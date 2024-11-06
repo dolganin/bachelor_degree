@@ -54,7 +54,6 @@ pip install -r requirements.txt
 git clone https://github.com/dolganin/DoomITH.git
 cd DoomITH
 ```
-# Следуйте инструкциям по сборке и установке из репозитория DoomITH.
 
 ## Структура проекта
 
