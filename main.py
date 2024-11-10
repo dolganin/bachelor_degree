@@ -14,6 +14,7 @@ from itertools import product
 from torch.cuda import is_available
 from datetime import datetime
 import signal
+from time import sleep
 
 # Инициализация colorama
 init(autoreset=True)
@@ -55,6 +56,45 @@ def get_default_name(prefix):
     date_str = datetime.now().strftime("%d_%m")
     return f"{prefix}_{date_str}"
 
+
+
+def get_latest_model_path(directory="weights"):
+    """Возвращает путь к самой последней модели, соответствующей шаблону 'ppo_dd_mm.pth'."""
+    
+    # Получаем все файлы, которые начинаются с `ppo_` и заканчиваются на `.pth`
+    model_files = [
+        f for f in os.listdir(directory)
+        if f.startswith("ppo_") and f.endswith(".pth")
+    ]
+
+    if not model_files:
+        print_debug_message("No model files found matching pattern 'ppo_dd_mm.pth'.", "red")
+        return None
+
+    # Список для хранения файлов и их дат
+    valid_models = []
+    for f in model_files:
+        try:
+            # Извлекаем дату, предполагая, что она находится сразу после `ppo_`
+            date_part = "_".join(f.rsplit("_", 2)[1:]).split(".")[0]
+            model_date = datetime.strptime(date_part, "%d_%m")
+            valid_models.append((model_date, f))
+        except (IndexError, ValueError):
+            # Пропускаем файлы с неверным форматом имени или даты
+            print_debug_message(f"Skipping file with invalid date format: {f}", "red")
+            continue
+
+    if not valid_models:
+        print_debug_message("No valid model files found with date format 'dd_mm'.", "red")
+        return None
+
+    # Сортируем по дате и выбираем последний по дате файл
+    latest_model_file = max(valid_models, key=lambda x: x[0])[1]
+    return os.path.join(directory, latest_model_file)
+
+
+
+
 def main() -> None:
     # Устройство
     DEVICE = 'cuda:0' if is_available() else 'cpu'
@@ -64,7 +104,7 @@ def main() -> None:
     parser = ArgumentParser(description='Bachelor Degree Script')
     parser.add_argument('-y', '--yaml', type=str, help='Path to yaml file', default="ppobase_config")
     parser.add_argument('-r', '--runname', type=str, help='Folder name for run', default=None)
-    parser.add_argument('-w', '--weights', type=str, help='Path to model weights', default=None)
+    parser.add_argument('-w', '--weights', nargs='?', const=True, help='Path to model weights (optional)')
     parser.add_argument('-d', '--debug', action='store_true', help='Debug mode flag')
     parser.add_argument('-t', '--test', action='store_true', help='Test mode flag')
     parser.add_argument('--timer', type=int, help="Time for timer in awaiting", default=5)
@@ -77,9 +117,22 @@ def main() -> None:
 
     # Устанавливаем имена по умолчанию, если они не заданы
     runname = f"runs/{args.runname}" if args.runname else f"runs/{get_default_name('run')}"
-    weights = f"weights/{args.weights}.pt" if args.weights else f"weights/{get_default_name('model')}"
+     # Логика определения пути к весам модели
+    if weights is True:
+        # Флаг задан, но путь не указан: загружаем последнюю модель
+        weights = get_latest_model_path()
+        if weights:
+            print_debug_message(f"Loading the latest model: {weights}", "green")
+        else:
+            print_debug_message("No saved models found. Starting new training.", "green")
+            weights = f"weights/{get_default_name('ppo')}"
+    elif isinstance(weights, str):
+        # Задан конкретный путь
+        weights = f"weights/{weights}"
+    else:
+        # Флаг не задан: создаем новую модель
+        weights = f"weights/{get_default_name('model')}"
 
-    print(weights)
     # Параметры для вывода в таблице
     parameters = {
         "YAML Config Path": yaml,
@@ -218,9 +271,17 @@ def main() -> None:
             model_savefile=weights
         )
         print_debug_message("Trainer successfully initialized.", "green")
+
+        if os.path.isfile(weights):
+            trainer.load_model(weights)
+            print_debug_message(f"Model weights loaded from {weights}", "green")
+        else:
+            print_debug_message("Starting new training without preloaded weights.", "green")
     except Exception as e:
         print_debug_message(f"Error initializing trainer: {e}", "red")
         return
+
+    
 
     # Запуск обучения
     print_debug_message("Starting training...", "yellow")

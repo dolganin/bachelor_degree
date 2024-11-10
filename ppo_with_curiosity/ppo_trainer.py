@@ -183,14 +183,14 @@ class PPOTrainer(TrainerRL):
             path (str): Базовый путь для загрузки моделей (без расширений).
         """
         checkpoint = torch.load(f"{path}.pth", map_location=self.device)
-        self.policy_net.load_state_dict(checkpoint['policy_net_state_dict'])
-        self.value_net.load_state_dict(checkpoint['value_net_state_dict'])
-        self.forward_model.load_state_dict(checkpoint['forward_model_state_dict'])
+        self.agent.policy_net.load_state_dict(checkpoint['policy_net_state_dict'])
+        self.agent.value_net.load_state_dict(checkpoint['value_net_state_dict'])
+        self.agent.forward_model.load_state_dict(checkpoint['forward_model_state_dict'])
         
-        self.policy_net.to(self.device)
-        self.value_net.to(self.device)
-        self.forward_model.to(self.device)
+        self.agent.policy_net.to(self.device)
+        self.agent.value_net.to(self.device)
+        self.agent.forward_model.to(self.device)
         
-        print(f"Models and optimizers loaded from {path}.pth")
+        print(f"Models and optimizers loaded from {path}")
 
 
