@@ -55,4 +55,4 @@ RUN chmod +x /workspace/create_kafka_topic.sh /workspace/start_services.sh
 EXPOSE 5000 6006
 
 # Команда запуска приложения
-CMD ["/workspace/start_services.sh"]
+CMD ["/workspace/scripts/start_services.sh"]

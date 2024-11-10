@@ -29,8 +29,8 @@ else
   python /workspace/server_consumer/flask_server.py &
 fi
 
-# Запуск основного скрипта
-python /workspace/main.py "$@" &
+# Запуск основного скрипта (с передачей аргументов)
+python /workspace/main.py "$@" > /workspace/main.log 2>&1 &
 
 # Запуск TensorBoard
 tensorboard --logdir=/workspace/runs --port=6006 &
