@@ -40,13 +40,16 @@
             var socket = io();  // Подключение к WebSocket
             
             socket.on('new_frame', function(data) {
-                var img = document.getElementById('stream');
-                img.src = 'data:image/jpeg;base64,' + data.image;
+                // Обновление только если hostname == "Aurora"
+                if (data.hostname === "Aurora") {
+                    var img = document.getElementById('stream');
+                    img.src = 'data:image/jpeg;base64,' + data.image;
 
-                document.getElementById('epoch').innerText = 'Epoch: ' + data.epoch;
-                document.getElementById('loss').innerText = 'Loss: ' + data.loss;
-                document.getElementById('meanReward').innerText = 'Mean Reward: ' + data.meanReward;
-                document.getElementById('mode').innerText = 'Mode: ' + data.mode;  
+                    document.getElementById('epoch').innerText = 'Epoch: ' + data.epoch;
+                    document.getElementById('loss').innerText = 'Loss: ' + data.loss;
+                    document.getElementById('meanReward').innerText = 'Mean Reward: ' + data.meanReward;
+                    document.getElementById('mode').innerText = 'Mode: ' + data.mode;  
+                }
             });
 
             socket.on('connect', function() {

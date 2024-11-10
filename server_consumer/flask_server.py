@@ -2,8 +2,6 @@ from flask import Flask, request, jsonify, render_template
 from flask_socketio import SocketIO
 import logging
 import os
-
-# Импортируем Kafka для отправки данных в удалённом режиме
 from kafka import KafkaProducer
 import json
 
@@ -55,6 +53,7 @@ def update_frame():
     image = data['image']
     epoch = data['epoch']
     mode = data['mode']
+    hostname = data.get('hostname')  # Получаем хостнейм из JSON
 
     try:
         loss = round(data['loss'], 2)
@@ -62,10 +61,15 @@ def update_frame():
 
         # Если сервер работает в локальном режиме
         if MODE == 'local':
-            socketio.emit('new_frame', {'image': image, 'loss': loss, 'epoch': epoch, 'meanReward': meanReward, 'mode': mode})
+            # Проверяем хостнейм и отправляем кадры только соответствующим клиентам
+            if hostname == 'Aurora':
+                socketio.emit('new_frame', {'image': image, 'loss': loss, 'epoch': epoch, 'meanReward': meanReward, 'mode': mode})
+            elif hostname == 'Apollo2':
+                socketio.emit('new_frame', {'image': image, 'loss': loss, 'epoch': epoch, 'meanReward': meanReward, 'mode': mode})
+
         # Если сервер работает в удалённом режиме, отправляем через Kafka
         elif MODE == 'remote':
-            frame_data = {'image': image, 'loss': loss, 'epoch': epoch, 'meanReward': meanReward, 'mode': mode}
+            frame_data = {'image': image, 'loss': loss, 'epoch': epoch, 'meanReward': meanReward, 'mode': mode, 'hostname': hostname}
             kafka_producer.send('frame_topic', frame_data)
             logger.debug("Frame sent to Kafka producer.")
 

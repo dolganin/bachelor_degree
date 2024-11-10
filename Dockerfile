@@ -29,9 +29,10 @@ COPY . /workspace/
 # Клонируем репозиторий DoomITH
 RUN git clone https://github.com/dolganin/DoomITH.git /workspace/DoomITH
 
-# Создаем папку для сборки и переходим в неё
+# Создаем папку для сборки и переходим в неё, параллельно строим проект на всех ядрах
 RUN mkdir /workspace/DoomITH/build && cd /workspace/DoomITH/build && \
-    cmake .. && make && \
+    cmake .. && \
+    make -j$(nproc) && \ 
     cd .. && pip install . && \
     cd ..
 

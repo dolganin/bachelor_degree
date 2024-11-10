@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import base64
 import os
+import socket  # Для получения имени хоста
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
@@ -51,19 +52,27 @@ def get_server_url():
         # For local mode, return the local Flask URL
         return "http://localhost:5000/update_frame"
 
+def get_hostname():
+    """Получение имени хоста, который будет добавлено в JSON."""
+    return socket.gethostname()
+
 def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward, server_url):
     """Отправка кадра и метаданных на сервер по HTTP."""
     try:
-        response = requests.post(
-            server_url,
-            json={
-                'image': image_base64, 
-                'epoch': epoch, 
-                'loss': loss, 
-                'mode': mode, 
-                'meanReward': mean_reward
-            }
-        )
+        hostname = get_hostname()  # Получаем имя хоста
+
+        # Добавляем имя хоста в JSON
+        data = {
+            'image': image_base64, 
+            'epoch': epoch, 
+            'loss': loss, 
+            'mode': mode, 
+            'meanReward': mean_reward,
+            'hostname': hostname  # Имя хоста добавляется сюда
+        }
+
+        response = requests.post(server_url, json=data)
+        
         if response.status_code == 200:
             logger.info("Frame sent successfully.")
         else:
