@@ -7,9 +7,9 @@ RUN apt-get update && apt-get install -y \
     python3.10 python3.10-venv python3.10-dev python3-pip \
     curl git cmake build-essential \
     libboost-all-dev \
-    libsdl2-dev \ 
-    libsndfile1-dev \  
-    libfftw3-dev && \ 
+    libsdl2-dev \
+    libsndfile1-dev \
+    libfftw3-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Установка Kafka
@@ -32,8 +32,7 @@ RUN git clone https://github.com/dolganin/DoomITH.git /workspace/DoomITH
 # Создаем папку для сборки и переходим в неё
 RUN mkdir /workspace/DoomITH/build && cd /workspace/DoomITH/build && \
     cmake .. && make && \
-    cd ..\
-    pip install . \
+    cd .. && pip install . && \
     cd ..
 
 # Копируем файл requirements.txt из текущей директории на хосте в контейнер
@@ -44,6 +43,9 @@ RUN python3.10 -m venv $VENV_PATH && \
     . $VENV_PATH/bin/activate && \
     pip install --upgrade pip && \
     pip install -r /workspace/requirements.txt
+
+# Копируем конфигурационный файл для хоста (host_dith.conf) в контейнер
+COPY host_dith.conf /workspace/host_dith.conf
 
 # Копируем bash скрипты для автоматизации Kafka и запуска приложения
 RUN chmod +x /workspace/create_kafka_topic.sh /workspace/start_services.sh

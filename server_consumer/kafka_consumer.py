@@ -7,6 +7,7 @@ import time
 from PIL import Image, ImageDraw, ImageFont
 import io
 import base64
+import os
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
@@ -34,11 +35,27 @@ def create_black_image_with_text(text):
     img.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
-def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward):
-    """Отправка кадра и метаданных на Flask сервер по HTTP."""
+def get_server_url():
+    """Получение URL сервера из конфигурационного файла host_dith.conf."""
+    mode = os.getenv('MODE', 'local')  # Default to 'local' if not set
+    if mode == 'remote':
+        try:
+            with open('host_dith.conf', 'r') as file:
+                host_config = file.read().strip()
+            logger.info(f"Remote server URL: {host_config}")
+            return host_config
+        except Exception as e:
+            logger.error(f"Failed to read host_dith.conf: {e}")
+            return None
+    else:
+        # For local mode, return the local Flask URL
+        return "http://localhost:5000/update_frame"
+
+def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward, server_url):
+    """Отправка кадра и метаданных на сервер по HTTP."""
     try:
         response = requests.post(
-            "http://localhost:5000/update_frame", 
+            server_url,
             json={
                 'image': image_base64, 
                 'epoch': epoch, 
@@ -68,6 +85,12 @@ def consume_kafka_messages():
 
     last_message_time = time.time()
 
+    # Получаем серверный URL в зависимости от режима
+    server_url = get_server_url()
+    if server_url is None:
+        logger.error("No valid server URL found. Exiting...")
+        return
+
     while True:
         try:
             msg = consumer.poll(timeout=0.5)
@@ -77,7 +100,7 @@ def consume_kafka_messages():
             if current_time - last_message_time > 2:
                 logger.info("No messages received for 2 seconds. Sending default black image.")
                 image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
-                send_frame_to_server(image_base64, 'Undefined', 'NaN', 'Undefined', 'NaN')
+                send_frame_to_server(image_base64, 'Undefined', 'NaN', 'Undefined', 'NaN', server_url)
                 last_message_time = current_time  # Сброс времени после отправки заглушки
 
             if msg is None:
@@ -112,7 +135,7 @@ def consume_kafka_messages():
                         image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
 
                 # Отправляем изображение и метаданные на сервер
-                send_frame_to_server(image_base64, epoch, loss, mode, mean_reward)
+                send_frame_to_server(image_base64, epoch, loss, mode, mean_reward, server_url)
                 last_message_time = time.time()  # Обновляем время последнего успешного сообщения
                 logger.info("Frame and metadata sent successfully.")
             except Exception as decode_error:

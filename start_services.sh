@@ -1,5 +1,8 @@
 #!/bin/bash
-# Скрипт для запуска Kafka и всех скриптов
+# Скрипт для запуска Kafka и всех сервисов
+
+# Проверяем режим работы (по умолчанию локальный режим)
+MODE=${MODE:-local}
 
 # Запуск Zookeeper и Kafka
 $KAFKA_HOME/bin/zookeeper-server-start.sh -daemon $KAFKA_HOME/config/zookeeper.properties
@@ -14,11 +17,22 @@ sleep 5
 # Активация виртуального окружения
 source $VENV_PATH/bin/activate
 
-# Запуск server_consumer/kafka_consumer.py, server_consumer/flask_server.py и main.py
-python /workspace/server_consumer/kafka_consumer.py &
-python /workspace/server_consumer/flask_server.py &
+# В зависимости от режима работы, запускаем соответствующие процессы
+if [ "$MODE" == "remote" ]; then
+  # В режиме удаленного сервера, передаем информацию на удаленный сервер
+  echo "Running in remote mode. Sending data to remote server."
+  python /workspace/server_consumer/kafka_consumer.py &
+else
+  # В локальном режиме, запускаем сервер и консюмера
+  echo "Running in local mode. Running Flask server and Kafka consumer locally."
+  python /workspace/server_consumer/kafka_consumer.py &
+  python /workspace/server_consumer/flask_server.py &
+fi
+
+# Запуск основного скрипта
 python /workspace/main.py "$@" &
 
+# Запуск TensorBoard
 tensorboard --logdir=/workspace/runs --port=6006 &
 
 # Ожидание завершения процессов
