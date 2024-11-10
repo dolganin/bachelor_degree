@@ -8,6 +8,7 @@ from server_consumer.broker_kafka import publish_data
 import cv2
 from torch import argmax, Tensor
 from colorama import Fore, Style
+from datetime import datetime
 
 
 class TrainerRL(ABC):
@@ -121,45 +122,31 @@ class TrainerRL(ABC):
     def run(self, epochs: int = 0, evaluate_every: int = 100) -> None:
         """
         Полный процесс обучения с периодической оценкой.
-
-        Args:
-            num_episodes: Количество эпизодов для обучения.
-            evaluate_every: Частота оценок после определенного количества эпизодов.
         """
         max_reward = 0.0
 
-        # Настройка цветного текста
-
-        # Прогресс-бар для отслеживания эпох
         with trange(epochs, desc="Training", unit="epoch", bar_format='{l_bar}{bar:20}{r_bar}{bar:-20b}') as pbar:
             for epoch in pbar:
-                start_time = time()
+                start_time = datetime.now().strftime("%H:%M:%S:%d:%m")
                 test_scores = []
 
                 # Запуск тренировки на одном эпизоде
                 reward, loss_lst = self.train(epoch, steps_per_epoch=self.steps_per_epoch)
                 self.total_rewards.append(reward)
 
-                # Обновление прогресс-бара с описанием
-                pbar.set_postfix(epoch=epoch + 1, reward=reward)
+                # Обновление прогресс-бара с временем начала
+                pbar.set_postfix(epoch=epoch + 1, reward=reward, start_time=start_time)
 
                 # Периодическая оценка
                 if epoch % evaluate_every == 0:
                     print(Fore.YELLOW + "\nTesting..." + Style.RESET_ALL)
-
-
                     test_scores = self.evaluate()
-
-                    # Логгирование результатов
                     test_scores = np.array(test_scores)
 
-
-                    forward_loss=np.array(loss_lst["forward_loss"]).mean()
-                    policy_loss=np.array(loss_lst["policy_loss"]).mean()
-                    value_loss=np.array(loss_lst["value_loss"]).mean()
-                    mean_loss = (forward_loss+policy_loss+value_loss)/3
-
-                    
+                    forward_loss = np.array(loss_lst["forward_loss"]).mean()
+                    policy_loss = np.array(loss_lst["policy_loss"]).mean()
+                    value_loss = np.array(loss_lst["value_loss"]).mean()
+                    mean_loss = (forward_loss + policy_loss + value_loss) / 3
 
                     self.log_metrics(epoch, 
                                     mean_reward=test_scores.mean(), 
@@ -170,11 +157,11 @@ class TrainerRL(ABC):
                                     mean_loss=mean_loss
                                     )
 
-                    print(Fore.CYAN + "Total elapsed time: %.2f minutes" % ((time() - start_time) / 60.0) + Style.RESET_ALL)
+                    elapsed_time = (time() - datetime.strptime(start_time, "%H:%M:%S:%d:%m").timestamp()) / 60.0
+                    print(Fore.CYAN + f"Total elapsed time: {elapsed_time:.2f} minutes" + Style.RESET_ALL)
                     
                     self.agent.forward_replay_buffer.load()
                     
-                # Обновление прогресс-бара
                 pbar.update(1)
 
         self.env.close()
