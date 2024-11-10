@@ -144,7 +144,7 @@ class TrainerRL(ABC):
                 pbar.set_postfix(epoch=epoch + 1, reward=reward)
 
                 # Периодическая оценка
-                if epoch % evaluate_every == 0 and epoch != 0:
+                if epoch % evaluate_every == 0:
                     print(Fore.YELLOW + "\nTesting..." + Style.RESET_ALL)
 
 
