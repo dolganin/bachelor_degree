@@ -1,7 +1,9 @@
-from collections import deque
+import os
 import random
 import torch
+import pickle
 import numpy as np
+from collections import deque
 
 class ReplayBuffer:
     def __init__(self, capacity: int = 10000, momentum: float = 0.995):
@@ -12,17 +14,19 @@ class ReplayBuffer:
             capacity (int): Максимальная емкость буфера.
             momentum (float): Коэффициент затухания для старых значений, по умолчанию 0.995.
         """
-        self.buffer = deque(maxlen=capacity)
+        self.capacity = capacity  # Сохраняем емкость для повторной инициализации
         self.momentum = momentum
-    
-    def push(self, state: np.ndarray, action: int, next_state: np.ndarray, reward: float, 
+        self.buffer = deque(maxlen=capacity)
+        self.dump_path = "dump_buffer.bin"
+
+    def push(self, state: np.ndarray, action: int, next_state: np.ndarray, reward: float,
              combined_reward: float, action_log_prob: np.ndarray, done: bool):
         """
         Добавление нового перехода в буфер с применением коэффициента затухания для старых элементов.
 
         Args:
             state (np.ndarray): Текущее состояние.
-            action (np.ndarray): Действие агента.
+            action (int): Действие агента.
             next_state (np.ndarray): Следующее состояние.
             reward (float): Награда за текущее действие.
             combined_reward (float): Комбинированная награда.
@@ -33,10 +37,10 @@ class ReplayBuffer:
         self.buffer = deque([(s * self.momentum, a * self.momentum, ns * self.momentum, r * self.momentum,
                               cr * self.momentum, alp * self.momentum, d) for s, a, ns, r, cr, alp, d in self.buffer],
                             maxlen=self.buffer.maxlen)
-        
+
         # Добавление нового перехода
         self.buffer.append((state, action, next_state, reward, combined_reward, action_log_prob, done))
-    
+
     def sample(self, batch_size: int):
         """
         Сэмплирование батча из буфера.
@@ -60,20 +64,40 @@ class ReplayBuffer:
             torch.BoolTensor(dones)
         )
 
-    def clear(self):
-        """Полностью очищает буфер."""
-        self.buffer.clear()
+    def dump(self):
+        """
+        Сохраняет содержимое буфера на диск в файл dump_buffer.bin и полностью удаляет буфер из памяти.
+        """
+        # Убедимся, что файл существует
+        with open(self.dump_path, 'ab') as file:
+            pass  # Просто создаем файл, если его нет
+        with open(self.dump_path, 'wb') as file:
+            pickle.dump(self.buffer, file)
+        print("Buffer has been temporarily saved to disk as 'dump_buffer.bin'.")
 
-    def clear_memory(self):
-        """Очистка памяти после эпизода (для явного удаления больших объектов)."""
-        # Явно удаляем объекты в буфере
-        for entry in self.buffer:
-            # Если объекты в записи — это большие массивы или тензоры, можно явно их удалить
-            for item in entry[:3]:  # Для state, next_state, action_log_prob (если это большие объекты)
-                del item
+        # Полное удаление буфера и его элементов из памяти
+        for entry in list(self.buffer):
+            for item in entry:
+                del item  # Удаление каждого элемента перехода
+            del entry  # Удаление самого перехода
+        self.buffer.clear()  # Очистка буфера
+        del self.buffer  # Удаление ссылки на буфер
+        print("Buffer and its contents have been deleted from memory to free up RAM.")
 
-        # Очистка буфера
-        self.clear()
-    
+    def load(self):
+        """
+        Загружает содержимое буфера из файла dump_buffer.bin в ОЗУ.
+        После загрузки файл удаляется.
+        """
+        if os.path.exists(self.dump_path):
+            with open(self.dump_path, 'rb') as file:
+                self.buffer = pickle.load(file)
+            os.remove(self.dump_path)
+            print("Buffer has been loaded from disk and removed from 'dump_buffer.bin'.")
+        else:
+            # Повторная инициализация буфера, если файл отсутствует
+            self.buffer = deque(maxlen=self.capacity)
+            print("No buffer file found to load. Initialized a new empty buffer.")
+
     def __len__(self):
-        return len(self.buffer)
+        return len(self.buffer) if self.buffer is not None else 0

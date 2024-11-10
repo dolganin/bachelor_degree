@@ -130,6 +130,10 @@ class PPOTrainer(TrainerRL):
                 # Сохраняем лоссы в словарь
                 loss_dict['policy_loss'] = loss_dict.get('policy_loss', []) + [policy_loss]
                 loss_dict['value_loss'] = loss_dict.get('value_loss', []) + [value_loss]
+            else:
+                loss_dict['policy_loss'] = loss_dict.get('policy_loss', []) + [0.0]
+                loss_dict['value_loss'] = loss_dict.get('value_loss', []) + [0.0]
+                
             
             # Завершение эпизода
             if done:
@@ -141,6 +145,8 @@ class PPOTrainer(TrainerRL):
         forward_loss = self.agent.update_forward_model()
         if forward_loss > 0.0:
             loss_dict['forward_loss'] = loss_dict.get('forward_loss', []) + [forward_loss]
+        else:
+            loss_dict['forward_loss'] = loss_dict.get('forward_loss', []) + [0.0]
         
         # Логирование прогресса
         average_policy_loss = np.mean(loss_dict['policy_loss']) if 'policy_loss' in loss_dict else 0.0

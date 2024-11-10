@@ -115,7 +115,7 @@ def main() -> None:
             frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch,
             weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
             patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, 
-            ex_loss, window_size, evaluate_every) = constants(config)
+            ex_loss, window_size, evaluate_every, fps) = constants(config)
         
         # Параметры конфигурации
 # Параметры конфигурации
@@ -194,7 +194,7 @@ def main() -> None:
     # Инициализация вспомогательных объектов
     try:
         out_video_file = get_video_filename(timer)  # Используем новую функцию для получения имени файла
-        vlogger = VideoLogger(filepath=out_video_file)
+        vlogger = VideoLogger(filepath=out_video_file, fps=fps)
         evaluator = AgentEvaluator(window_size=window_size)
         print_debug_message("Video Logger and Agent Evaluator initialized.", "green")
     except Exception as e:

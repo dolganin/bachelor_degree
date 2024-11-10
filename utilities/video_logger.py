@@ -3,7 +3,7 @@ import numpy as np
 import imageio
 
 class VideoLogger:
-    def __init__(self, filepath, fps=5):
+    def __init__(self, filepath, fps=10):
         """  
         Initializes video logging.
 
@@ -38,8 +38,9 @@ class VideoLogger:
         imageio.mimsave(self.bestfile_path, self.frames, fps=self.fps, codec='vp8')
         
         print(f"Gameplay of agent is saved to {self.filepath} and the best video was updated")
-        self.frames.clear()
+        self.clear()
 
     def clear(self):
         """Clears saved frames."""
-        self.frames.clear()
+        del self.frames
+        self.frames = []

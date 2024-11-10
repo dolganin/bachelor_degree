@@ -49,6 +49,7 @@ def constants(yml: dict = None) -> List:
 
 
         resolution = yml["env_parameters"]["resolution"]
+        fps = yml["env_parameters"]["fps"]
 
         cfg_path = yml["doom_cfg_path"]
 
@@ -59,4 +60,4 @@ def constants(yml: dict = None) -> List:
             frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch,
             weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
             patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, ex_loss, 
-            window_size, evaluate_every)
+            window_size, evaluate_every, fps)

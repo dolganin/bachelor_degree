@@ -72,7 +72,10 @@ class TrainerRL(ABC):
             test_scores.append(r)
 
         test_scores = np.array(test_scores)
-        self.avaluator.evaluate_and_save(self, test_scores.mean(), test_scores.std(), self.agent.compute_total_loss())
+        total_loss = self.agent.compute_total_loss()
+        
+        self.agent.forward_replay_buffer.dump()
+        self.avaluator.evaluate_and_save(self, test_scores.mean(), test_scores.std(), total_loss)
         return test_scores
 
     @abstractmethod
@@ -143,10 +146,13 @@ class TrainerRL(ABC):
                 # Периодическая оценка
                 if epoch % evaluate_every == 0 and epoch != 0:
                     print(Fore.YELLOW + "\nTesting..." + Style.RESET_ALL)
+
+
                     test_scores = self.evaluate()
 
                     # Логгирование результатов
                     test_scores = np.array(test_scores)
+
 
                     forward_loss=np.array(loss_lst["forward_loss"]).mean()
                     policy_loss=np.array(loss_lst["policy_loss"]).mean()
@@ -165,7 +171,8 @@ class TrainerRL(ABC):
                                     )
 
                     print(Fore.CYAN + "Total elapsed time: %.2f minutes" % ((time() - start_time) / 60.0) + Style.RESET_ALL)
-                    self.agent.forward_replay_buffer.clear_memory()
+                    
+                    self.agent.forward_replay_buffer.load()
                     
                 # Обновление прогресс-бара
                 pbar.update(1)
