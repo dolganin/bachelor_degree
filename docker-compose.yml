@@ -1,4 +1,5 @@
-version: '3'
+version: '3.8'
+
 services:
   kafka:
     image: wurstmeister/kafka:latest
@@ -19,26 +20,35 @@ services:
     networks:
       - mynetwork
 
-  consumer:
-    build: .
+  kafka_dith:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kafka_dith:1.2
     environment:
       KAFKA_BROKER: kafka:9092
-      MODE: ${MODE:-local} 
-    command: bash -c " 
-    
+      MODE: ${MODE:-local}
+    command: bash -c "
       python /workspace/server_consumer/kafka_consumer.py &
-      
-      if [ \"$MODE\" == \"local\" ]; then
-
-        python /workspace/server_consumer/flask_server.py &
-      fi
-
-      python /workspace/main.py > /workspace/main.log 2>&1 &
-
-      tensorboard --logdir=/workspace/runs --port=6006 &
-
       wait"
-      
+    networks:
+      - mynetwork
+    depends_on:
+      - kafka
+      - zookeeper
+
+  dith:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dith:1.2
+    environment:
+      KAFKA_BROKER: kafka:9092
+      MODE: ${MODE:-local}
+    command: bash -c "
+      python /workspace/main.py > /workspace/main.log 2>&1 &
+      tensorboard --logdir=/workspace/runs --port=6006 &
+      wait"
     networks:
       - mynetwork
     depends_on:
