@@ -22,20 +22,28 @@ services:
   consumer:
     build: .
     environment:
-      KAFKA_BROKER: kafka:9092  # Используем имя сервиса Kafka
-    networks:
-      - mynetwork
-    depends_on:
-      - kafka
+      KAFKA_BROKER: kafka:9092
+      MODE: ${MODE:-local} 
+    command: bash -c " 
+    
+      python /workspace/server_consumer/kafka_consumer.py &
+      
+      if [ \"$MODE\" == \"local\" ]; then
 
-  flask:
-    build: .
-    environment:
-      KAFKA_BROKER: kafka:9092  # Используем имя сервиса Kafka
+        python /workspace/server_consumer/flask_server.py &
+      fi
+
+      python /workspace/main.py > /workspace/main.log 2>&1 &
+
+      tensorboard --logdir=/workspace/runs --port=6006 &
+
+      wait"
+      
     networks:
       - mynetwork
     depends_on:
       - kafka
+      - zookeeper
 
 networks:
   mynetwork:

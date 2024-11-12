@@ -53,10 +53,9 @@ RUN . $VENV_PATH/bin/activate && \
 COPY host_dith.conf /workspace/host_dith.conf
 
 # Копируем bash скрипты для автоматизации Kafka и запуска приложения
-RUN chmod +x /workspace/scripts/create_kafka_topic.sh /workspace/scripts/start_services.sh
+RUN chmod +x /workspace/scripts/create_kafka_topic.sh
 
 # Открываем порты для Kafka, Flask и TensorBoard
 EXPOSE 5000 6006 9092 2181
 
-# Команда запуска приложения
-CMD ["/workspace/scripts/start_services.sh"]
+# Нет команды CMD здесь — запуск будет определяться через docker-compose.yml
