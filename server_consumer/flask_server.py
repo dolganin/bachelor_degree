@@ -15,7 +15,7 @@ MODE = os.getenv('MODE', 'local')  # 'local' или 'remote'
 # Устанавливаем Kafka-продюсера для отправки данных в случае удалённого режима
 if MODE == 'remote':
     kafka_producer = KafkaProducer(
-        bootstrap_servers=['your_kafka_broker:9092'],
+        bootstrap_servers=['0.0.0.0:9092'],
         value_serializer=lambda v: json.dumps(v).encode('utf-8')
     )
 

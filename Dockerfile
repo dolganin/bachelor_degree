@@ -29,14 +29,14 @@ COPY . /workspace/
 # Клонируем репозиторий DoomITH
 RUN git clone https://github.com/dolganin/DoomITH.git /workspace/DoomITH
 
-# Создаем папку для сборки и переходим в неё, параллельно строим проект на всех ядрах
+# Создаем папку для сборки и собираем проект на всех ядрах
 RUN mkdir /workspace/DoomITH/build && cd /workspace/DoomITH/build && \
     cmake .. && \
-    make -j$(nproc) && \ 
+    make -j$(nproc) && \
     cd .. && pip install . && \
     cd ..
 
-# Копируем файл requirements.txt из текущей директории на хосте в контейнер
+# Копируем файл requirements.txt и устанавливаем зависимости
 COPY requirements.txt /workspace/requirements.txt
 
 # Создаем и активируем виртуальное окружение
@@ -45,14 +45,14 @@ RUN python3.10 -m venv $VENV_PATH && \
     pip install --upgrade pip && \
     pip install -r /workspace/requirements.txt
 
-# Копируем конфигурационный файл для хоста (host_dith.conf) в контейнер
+# Копируем конфигурационный файл для Kafka (если требуется для удаленного режима)
 COPY host_dith.conf /workspace/host_dith.conf
 
 # Копируем bash скрипты для автоматизации Kafka и запуска приложения
 RUN chmod +x /workspace/create_kafka_topic.sh /workspace/start_services.sh
 
-# Открываем необходимые порты
-EXPOSE 5000 6006
+# Открываем необходимые порты для локального и удаленного режимов
+EXPOSE 5000 6006 9092 2181
 
 # Команда запуска приложения
 CMD ["/workspace/scripts/start_services.sh"]

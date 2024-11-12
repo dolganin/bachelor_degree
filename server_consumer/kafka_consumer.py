@@ -1,14 +1,15 @@
-import numpy as np
+import os
+import socket
+import time
 import json
-from confluent_kafka import Consumer, KafkaError
 import logging
 import requests
-import time
-from PIL import Image, ImageDraw, ImageFont
-import io
 import base64
-import os
-import socket  # Для получения имени хоста
+import io
+from confluent_kafka import Consumer, KafkaError
+from PIL import Image, ImageDraw, ImageFont
+
+import numpy as np
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
@@ -38,7 +39,7 @@ def create_black_image_with_text(text):
 
 def get_server_url():
     """Получение URL сервера из конфигурационного файла host_dith.conf."""
-    mode = os.getenv('MODE', 'local')  # Default to 'local' if not set
+    mode = os.getenv('MODE', 'local')
     if mode == 'remote':
         try:
             with open('host_dith.conf', 'r') as file:
@@ -48,31 +49,26 @@ def get_server_url():
         except Exception as e:
             logger.error(f"Failed to read host_dith.conf: {e}")
             return None
-    else:
-        # For local mode, return the local Flask URL
-        return "http://localhost:5000/update_frame"
+    return "http://localhost:5000/update_frame"
 
 def get_hostname():
-    """Получение имени хоста, который будет добавлено в JSON."""
+    """Получение имени хоста для добавления в JSON данные."""
     return socket.gethostname()
 
 def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward, server_url):
     """Отправка кадра и метаданных на сервер по HTTP."""
+    hostname = get_hostname()
+    data = {
+        'image': image_base64,
+        'epoch': epoch,
+        'loss': loss,
+        'mode': mode,
+        'meanReward': mean_reward,
+        'hostname': hostname
+    }
+
     try:
-        hostname = get_hostname()  # Получаем имя хоста
-
-        # Добавляем имя хоста в JSON
-        data = {
-            'image': image_base64, 
-            'epoch': epoch, 
-            'loss': loss, 
-            'mode': mode, 
-            'meanReward': mean_reward,
-            'hostname': hostname  # Имя хоста добавляется сюда
-        }
-
         response = requests.post(server_url, json=data)
-        
         if response.status_code == 200:
             logger.info("Frame sent successfully.")
         else:
@@ -80,37 +76,57 @@ def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward, server_ur
     except Exception as e:
         logger.error(f"Error sending frame: {e}")
 
+def validate_and_process_message(message_data, server_url):
+    """Валидация и обработка сообщения перед отправкой."""
+    image_base64 = message_data.get('image')
+    epoch = message_data.get('epoch', 'Undefined')
+    loss = message_data.get('loss', 'NaN')
+    mode = message_data.get('mode', 'Unknown')
+    mean_reward = message_data.get('meanReward', 'NaN')
+
+    if not image_base64:
+        logger.info("Received empty image. Using default black image.")
+        image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
+    else:
+        try:
+            image_data = base64.b64decode(image_base64)
+            img = Image.open(io.BytesIO(image_data))
+            img.verify()
+        except Exception as img_error:
+            logger.warning("Invalid image. Using default black image.")
+            image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
+
+    send_frame_to_server(image_base64, epoch, loss, mode, mean_reward, server_url)
+
 def consume_kafka_messages():
     """Потребление сообщений из Kafka топика 'doom_screen'."""
     consumer_config = {
-        'bootstrap.servers': '192.168.3.2:9092',
+        'bootstrap.servers': '0.0.0.0:9092',
         'group.id': 'flask-consumer-group',
         'auto.offset.reset': 'earliest'
     }
 
     consumer = Consumer(consumer_config)
     consumer.subscribe(['doom_screen'])
-    logger.info("Kafka consumer subscribed to 'doom_screen'")
+    logger.info("Subscribed to 'doom_screen'")
 
-    last_message_time = time.time()
-
-    # Получаем серверный URL в зависимости от режима
     server_url = get_server_url()
     if server_url is None:
         logger.error("No valid server URL found. Exiting...")
         return
+
+    last_message_time = time.time()
 
     while True:
         try:
             msg = consumer.poll(timeout=0.5)
             current_time = time.time()
 
-            # Проверяем, прошло ли более 2 секунд с последнего сообщения
             if current_time - last_message_time > 2:
-                logger.info("No messages received for 2 seconds. Sending default black image.")
-                image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
-                send_frame_to_server(image_base64, 'Undefined', 'NaN', 'Undefined', 'NaN', server_url)
-                last_message_time = current_time  # Сброс времени после отправки заглушки
+                logger.info("No messages for 2 seconds. Sending default image.")
+                default_image = create_black_image_with_text("DITH isn't learning \n right now")
+                send_frame_to_server(default_image, 'Undefined', 'NaN', 'Undefined', 'NaN', server_url)
+                last_message_time = current_time
 
             if msg is None:
                 continue
@@ -124,34 +140,16 @@ def consume_kafka_messages():
 
             try:
                 message_data = json.loads(msg.value().decode('utf-8'))
-                image_base64 = message_data.get('image')
-                epoch = message_data.get('epoch', 'Undefined')
-                loss = message_data.get('loss', 'NaN')
-                mode = message_data.get('mode', 'Unknown')
-                mean_reward = message_data.get('meanReward', 'NaN')
-
-                # Проверка на пустое изображение
-                if not image_base64:
-                    logger.info("Received empty image. Sending default black image.")
-                    image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
-                else:
-                    try:
-                        image_data = base64.b64decode(image_base64)
-                        img = Image.open(io.BytesIO(image_data))
-                        img.verify()
-                    except Exception as img_error:
-                        logger.warning("Received an invalid image. Sending default black image.")
-                        image_base64 = create_black_image_with_text("DITH isn't learning \n right now")
-
-                # Отправляем изображение и метаданные на сервер
-                send_frame_to_server(image_base64, epoch, loss, mode, mean_reward, server_url)
-                last_message_time = time.time()  # Обновляем время последнего успешного сообщения
-                logger.info("Frame and metadata sent successfully.")
+                validate_and_process_message(message_data, server_url)
+                last_message_time = time.time()
+                logger.info("Frame and metadata processed successfully.")
+            except json.JSONDecodeError as decode_error:
+                logger.error(f"JSON decode error: {decode_error}")
             except Exception as decode_error:
-                logger.error(f"Error decoding message: {decode_error}")
+                logger.error(f"Message processing error: {decode_error}")
 
         except Exception as e:
-            logger.error(f"Error in consume_kafka_messages: {e}")
+            logger.error(f"Kafka consumption error: {e}")
             logger.info("Retrying connection to Kafka in 5 seconds...")
             time.sleep(5)
 
