@@ -5,65 +5,36 @@
     <title>Aurora Training Stream</title>
     <link rel="icon" href="/static/resources/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="/static/styles/styles.css">
+    <link rel="stylesheet" href="static/styles/aurora/aurora.css">
+    <script src="static/js/aurora/aurora.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
-    <style>
-        body {
-            background-image: url('/static/resources/aurora_background.jpg');
-            background-size: cover;
-            background-position: center;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-    </style>
 </head>
 <body>
-    <h1>Aurora Training Stream</h1>
+    <!-- Навигация -->
+    <div class="hover-little-thing">
+        <div class="urls">
+            <ul>
+                <li><a href="/">Main page</a></li>
+                <li><a href="/tallas2">Tallas2 Stream</a></li>
+                <li><a href="/aurora">Aurora Stream</a></li>
+                <li><a href="/apollo2">Apollo2 Stream</a></li>
+            </ul>
+        </div>
+        <h1>Aurora Training Stream</h1>
+    </div>
     
+    <!-- Блок статистики -->
     <div class="stats-container">
-        <div class="mode" id="mode">Mode: N/A</div>
-        <div class="stats" id="epoch">Epoch: N/A</div>
-        <div class="stats" id="loss">Loss: N/A</div>
-        <div class="stats" id="meanReward">Mean Reward: N/A</div>
+        <div class="mode" id="mode">Mode: Undefined</div>
+        <div class="stats" id="epoch">Epoch: Undefined</div>
+        <div class="stats" id="loss">Loss: NaN</div>
+        <div class="stats" id="meanReward">Mean Reward: NaN</div>
     </div>
 
-    <img id="stream" width="800" alt="Video Stream" />
+    <!-- Основной поток видео -->
+    <img id="stream" alt="Video Stream" />
 
-    <a href="http://talos2.ru:21936" class="logs-button">Logs</a>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var socket = io();  // Подключение к WebSocket
-            
-            socket.on('new_frame', function(data) {
-                // Обновление только если hostname == "Aurora"
-                if (data.hostname === "Aurora") {
-                    var img = document.getElementById('stream');
-                    img.src = 'data:image/jpeg;base64,' + data.image;
-
-                    document.getElementById('epoch').innerText = 'Epoch: ' + data.epoch;
-                    document.getElementById('loss').innerText = 'Loss: ' + data.loss;
-                    document.getElementById('meanReward').innerText = 'Mean Reward: ' + data.meanReward;
-                    document.getElementById('mode').innerText = 'Mode: ' + data.mode;  
-                }
-            });
-
-            socket.on('connect', function() {
-                console.log('Connected to server');
-            });
-
-            socket.on('disconnect', function() {
-                console.log('Disconnected from server');
-            });
-
-            socket.on('connect_error', function(error) {
-                console.error('Connection Error:', error);
-            });
-        });
-    </script>
+    <!-- Кнопка для просмотра логов -->
+    <a href="http://aurora.ru:21936" class="logs-button">Logs</a>
 </body>
 </html>

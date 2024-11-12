@@ -23,25 +23,29 @@ WORKDIR /workspace
 ENV VENV_PATH=/workspace/dith
 ENV PATH="$VENV_PATH/bin:$PATH"
 
-# Клонируем репозиторий проекта (основной проект)
+# Копируем файлы репозитория проекта и DoomITH
 COPY . /workspace/
 
-# Клонируем репозиторий DoomITH
-RUN git clone https://github.com/dolganin/DoomITH.git /workspace/DoomITH
+# Клонируем репозиторий DoomITH (если его нет)
+RUN if [ ! -d "/workspace/DoomITH" ]; then \
+    git clone https://github.com/dolganin/DoomITH.git /workspace/DoomITH; \
+fi
 
-# Создаем папку для сборки и собираем проект на всех ядрах
-RUN mkdir /workspace/DoomITH/build && cd /workspace/DoomITH/build && \
+# Создаем папку для сборки и собираем проект DoomITH, если необходимо
+RUN mkdir -p /workspace/DoomITH/build && cd /workspace/DoomITH/build && \
     cmake .. && \
     make -j$(nproc) && \
-    cd .. && pip install . && \
+    pip install . && \
     cd ..
 
-# Копируем файл requirements.txt и устанавливаем зависимости
+# Копируем файл requirements.txt в контейнер и устанавливаем зависимости
 COPY requirements.txt /workspace/requirements.txt
 
-# Создаем и активируем виртуальное окружение
-RUN python3.10 -m venv $VENV_PATH && \
-    . $VENV_PATH/bin/activate && \
+# Если виртуальное окружение еще не создано, создаем его, иначе пропускаем
+RUN [ ! -d "$VENV_PATH" ] && python3.10 -m venv $VENV_PATH || echo "Venv already created"
+
+# Устанавливаем зависимости
+RUN . $VENV_PATH/bin/activate && \
     pip install --upgrade pip && \
     pip install -r /workspace/requirements.txt
 
@@ -51,7 +55,7 @@ COPY host_dith.conf /workspace/host_dith.conf
 # Копируем bash скрипты для автоматизации Kafka и запуска приложения
 RUN chmod +x /workspace/scripts/create_kafka_topic.sh /workspace/scripts/start_services.sh
 
-# Открываем необходимые порты для локального и удаленного режимов
+# Открываем порты для Kafka, Flask и TensorBoard
 EXPOSE 5000 6006 9092 2181
 
 # Команда запуска приложения
