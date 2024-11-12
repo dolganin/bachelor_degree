@@ -49,7 +49,7 @@ RUN python3.10 -m venv $VENV_PATH && \
 COPY host_dith.conf /workspace/host_dith.conf
 
 # Копируем bash скрипты для автоматизации Kafka и запуска приложения
-RUN chmod +x /workspace/create_kafka_topic.sh /workspace/start_services.sh
+RUN chmod +x /workspace/scripts/create_kafka_topic.sh /workspace/scripts/start_services.sh
 
 # Открываем необходимые порты для локального и удаленного режимов
 EXPOSE 5000 6006 9092 2181
