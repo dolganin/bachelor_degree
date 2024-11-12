@@ -28,6 +28,7 @@ fi
 RUN mkdir -p /workspace/DoomITH/build && cd /workspace/DoomITH/build && \
     cmake .. && \
     make -j$(nproc) && \
+    ls \
     pip install . && \
     cd ..
 
