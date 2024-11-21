@@ -110,19 +110,25 @@ class PPOAgent(RLAgent):
         
     def get_action(self, state: np.ndarray):
         """
-        Выбор действия на основе текущего состояния с использованием Policy Network.
-
-        Args:
-            state (np.ndarray): Текущее состояние среды.
-
-        Returns:
-            tuple: Выбранное действие и логарифм вероятности действия.
+        Выбор действия с защитой от NaN в Policy Network.
         """
         state = torch.FloatTensor(state).unsqueeze(0).to(self.device)  # (1, C, H, W)
         mean, std = self.policy_net(state)
+        
+        # Ограничение std для предотвращения деления на ноль или числовой нестабильности
+        std = torch.clamp(std, min=1e-6, max=1.0)  # минимизация std для предотвращения деления на ноль
+
         dist = Normal(mean, std)
+
+        # Проверка на NaN в mean и std
+        if torch.any(torch.isnan(mean)) or torch.any(torch.isnan(std)):
+            print(f"Warning: NaN detected in policy network output! mean: {mean}, std: {std}")
+            # Можно вернуть какое-то действие по умолчанию, чтобы избежать сбоев
+            return np.zeros(self.action_size), torch.zeros_like(mean)
+
         action = dist.sample()
         action_log_prob = dist.log_prob(action).sum(dim=-1)
+
         return action.detach().cpu().numpy()[0], action_log_prob.detach()
 
 
@@ -171,6 +177,8 @@ class PPOAgent(RLAgent):
         # Обновление Policy Network
         mean, std = self.policy_net(states)
 
+        std = torch.clamp(std, min=1e-6, max=1.0)
+
         dist = Normal(mean, std)
 
         if actions.dim() == 1:
@@ -183,6 +191,10 @@ class PPOAgent(RLAgent):
         surr1 = ratio * advantages
         surr2 = torch.clamp(ratio, 1.0 - self.clip_epsilon, 1.0 + self.clip_epsilon) * advantages
         policy_loss = -torch.min(surr1, surr2).mean() - self.entropy_coef * entropy
+
+        if torch.isnan(policy_loss).any():
+            print(f"Warning: NaN detected in policy loss calculation!")
+            policy_loss = torch.zeros_like(policy_loss)
 
         self.policy_optimizer.zero_grad()
         policy_loss.backward()
