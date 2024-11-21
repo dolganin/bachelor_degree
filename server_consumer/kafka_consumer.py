@@ -23,6 +23,7 @@ def get_remote_server_url():
     try:
         with open('host_dith.conf', 'r') as f:
             line = f.readline().strip()
+            print(line)
             if not line:
                 return None
             ip, port = line.split(':')
