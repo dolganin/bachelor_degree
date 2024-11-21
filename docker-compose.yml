@@ -39,7 +39,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: dith:1.2
+    image: dith:1.3
     environment:
       KAFKA_BROKER: kafka:9092
       MODE: ${MODE:-local}
