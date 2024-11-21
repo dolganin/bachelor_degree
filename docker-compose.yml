@@ -41,7 +41,7 @@ services:
       dockerfile: Dockerfile
     image: dith:1.3
     environment:
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKER: 0.0.0.0:9092
       MODE: ${MODE:-local}
     command: python /workspace/main.py
     networks:

@@ -1,8 +1,9 @@
 document.addEventListener("DOMContentLoaded", function() {
-    var socket = io();  // Подключение к WebSocket
-    
+    // Specify the WebSocket URL if different from the current domain
+    var socket = io('http://aurora.example.com'); 
+
     socket.on('new_frame', function(data) {
-        // Обновление основного потока
+        // Ensure data format matches expectations
         var img = document.getElementById('stream');
         img.src = 'data:image/jpeg;base64,' + data.image;
 
@@ -14,6 +15,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     socket.on('connect', function() {
         console.log('Connected to server');
+        // Join the correct room for Aurora
+        socket.emit('join', { page: 'aurora_room' });
+        console.log('Joined aurora_room');
     });
 
     socket.on('disconnect', function() {
