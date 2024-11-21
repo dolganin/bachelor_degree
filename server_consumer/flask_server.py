@@ -1,105 +1,95 @@
 from flask import Flask, request, jsonify, render_template
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, join_room
 import logging
 import os
-from kafka import KafkaProducer
-import json
 
-# Настройка логирования
+# Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Режим работы: локальный сервер или удалённый
-MODE = os.getenv('MODE', 'local')  # 'local' или 'remote'
-
-# Устанавливаем Kafka-продюсера для отправки данных в случае удалённого режима
-if MODE == 'remote':
-    kafka_producer = KafkaProducer(
-        bootstrap_servers=['0.0.0.0:9092'],
-        value_serializer=lambda v: json.dumps(v).encode('utf-8')
-    )
-
-# Инициализация Flask и SocketIO
 app = Flask(__name__)
 socketio = SocketIO(app)
 
+# Determine mode from environment variable
+mode = os.environ.get('MODE', 'local').lower()
+
+if mode == 'remote':
+    logger.info("Running in remote mode. Server not started.")
+    # Exit the application
+    exit(0)
+elif mode == 'local':
+    logger.info("Running in local mode. Server starting on port 5000.")
+else:
+    logger.warning(f"Unknown mode: {mode}. Defaulting to local mode.")
+
 @app.route('/')
 def index():
-    """Маршрут для хаба стримов."""
+    """Route for the hub streams."""
     return render_template('hub/hub.html')
 
 @app.route('/tallas2')
 def tallas2():
-    """Маршрут для стрима tallas2."""
+    """Route for tallas2 stream."""
     return render_template('tallas2/tallas2.html')
 
 @app.route('/aurora')
 def aurora():
-    """Маршрут для стрима aurora."""
+    """Route for aurora stream."""
     return render_template('aurora/aurora.html')
 
 @app.route('/apollo2')
 def apollo2():
-    """Маршрут для стрима apollo2."""
+    """Route for apollo2 stream."""
     return render_template('apollo2/apollo2.html')
 
 @app.route('/update_frame', methods=['POST'])
 def update_frame():
-    """Эндпоинт для обновления кадра."""
+    """Endpoint to update the frame."""
     data = request.json
-    if 'image' not in data:
-        return jsonify({'error': 'No image provided'}), 400
+    required_fields = ['image', 'epoch', 'mode', 'loss', 'meanReward', 'page', 'hostname']
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
 
     image = data['image']
     epoch = data['epoch']
     mode = data['mode']
-    hostname = data.get('hostname')  # Получаем хостнейм из JSON
+    loss = round(data['loss'], 2)
+    meanReward = round(data['meanReward'], 2)
+    page = data['page']
+    hostname = data['hostname']
 
     try:
-        loss = round(data['loss'], 2)
-        meanReward = round(data['meanReward'], 2)
-
-        # Если сервер работает в локальном режиме
-        if MODE == 'local':
-            # Проверяем хостнейм и отправляем кадры только соответствующим клиентам
-            if hostname == 'Aurora':
-                socketio.emit('new_frame', {'image': image, 'loss': loss, 'epoch': epoch, 'meanReward': meanReward, 'mode': mode})
-            elif hostname == 'Apollo2':
-                socketio.emit('new_frame', {'image': image, 'loss': loss, 'epoch': epoch, 'meanReward': meanReward, 'mode': mode})
-
-        # Если сервер работает в удалённом режиме, отправляем через Kafka
-        elif MODE == 'remote':
-            frame_data = {'image': image, 'loss': loss, 'epoch': epoch, 'meanReward': meanReward, 'mode': mode, 'hostname': hostname}
-            kafka_producer.send('frame_topic', frame_data)
-            logger.debug("Frame sent to Kafka producer.")
-
+        socketio.emit('new_frame', 
+                      {'image': image, 'loss': loss, 'epoch': epoch, 
+                       'meanReward': meanReward, 'mode': mode, 'hostname': hostname}, 
+                      room=page)
     except Exception as e:
         logger.error(f"Error processing frame data: {e}")
-        # В случае ошибки отправляем данные с NaN значениями
-        error_data = {'image': image, 'loss': "NaN", 'epoch': "Undefined", 'meanReward': "NaN", 'mode': mode}
-        
-        if MODE == 'local':
-            socketio.emit('new_frame', error_data)
-        elif MODE == 'remote':
-            kafka_producer.send('frame_topic', error_data)
+        socketio.emit('new_frame', 
+                      {'image': image, 'loss': "NaN", 'epoch': "Undefined", 
+                       'meanReward': "NaN", 'mode': mode, 'hostname': hostname}, 
+                      room=page)
 
-    logger.debug("Frame received and processed.")
-    
+    logger.debug(f"Frame received from {hostname} and sent to {page} room.")
     return jsonify({'status': 'success'}), 200
 
 @socketio.on('connect')
 def handle_connect():
     logger.info('Client connected')
 
+@socketio.on('join')
+def handle_join(data):
+    page = data.get('page')
+    if page:
+        join_room(page)
+        logger.info(f"Client joined room {page}")
+    else:
+        logger.warning("Client tried to join room without specifying page")
+
 @socketio.on('disconnect')
 def handle_disconnect():
     logger.info("Client disconnected")
 
 if __name__ == '__main__':
-    logger.info("Running Flask server...")
-
-    if MODE == 'local':
-        # Запускаем сервер Flask только если работает в локальном режиме
-        socketio.run(app, host='0.0.0.0', port=5000)
-    else:
-        logger.info("Running in remote mode, no Flask server started.")
+    socketio.run(app, host='0.0.0.0', port=5000)

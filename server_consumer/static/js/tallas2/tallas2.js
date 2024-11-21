@@ -14,6 +14,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     socket.on('connect', function() {
         console.log('Connected to server');
+        socket.emit('join', { page: 'tallas2' });
+        console.log('Joined tallas2 room');
     });
 
     socket.on('disconnect', function() {
