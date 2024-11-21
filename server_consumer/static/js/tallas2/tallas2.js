@@ -2,9 +2,10 @@ document.addEventListener("DOMContentLoaded", function() {
     var socket = io();  // Подключение к WebSocket
     
     socket.on('new_frame', function(data) {
-        // Обновление основного потока
+        console.log('Received new frame:', data);
         var img = document.getElementById('stream');
-        img.src = 'data:image/jpeg;base64,' + data.image;
+        img.src = 'data:image/png;base64,' + data.image;
+        console.log('Updated image src:', img.src);
 
         document.getElementById('epoch').innerText = 'Epoch: ' + data.epoch;
         document.getElementById('loss').innerText = 'Loss: ' + data.loss;
@@ -14,8 +15,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     socket.on('connect', function() {
         console.log('Connected to server');
-        socket.emit('join', { page: 'tallas2' });
-        console.log('Joined tallas2 room');
+        socket.emit('join', { page: 'doom_screen' });
+        console.log('Joined doom_screen room');
     });
 
     socket.on('disconnect', function() {

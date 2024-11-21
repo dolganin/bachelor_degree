@@ -54,8 +54,12 @@ def update_frame():
     image = data['image']
     epoch = data['epoch']
     mode = data['mode']
-    loss = round(data['loss'], 2)
-    meanReward = round(data['meanReward'], 2)
+    try:
+        loss = round(data['loss'], 2)
+        meanReward = round(data['meanReward'], 2)
+    except:
+        loss = "NaN"
+        meanReward = "NaN"
     page = data['page']
     hostname = data['hostname']
 
