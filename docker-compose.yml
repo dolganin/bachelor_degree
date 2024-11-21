@@ -28,9 +28,7 @@ services:
     environment:
       KAFKA_BROKER: kafka:9092
       MODE: ${MODE:-local}
-    command: bash -c "
-      python /workspace/server_consumer/kafka_consumer.py &
-      wait"
+    command: python /workspace/server_consumer/kafka_consumer.py
     networks:
       - mynetwork
     depends_on:
@@ -45,15 +43,45 @@ services:
     environment:
       KAFKA_BROKER: kafka:9092
       MODE: ${MODE:-local}
-    command: bash -c "
-      python /workspace/main.py > /workspace/main.log 2>&1 &
-      tensorboard --logdir=/workspace/runs --port=6006 &
-      wait"
+    command: python /workspace/main.py
     networks:
       - mynetwork
     depends_on:
       - kafka
       - zookeeper
+
+  flask_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: flask_server:1.0
+    environment:
+      KAFKA_BROKER: kafka:9092
+      MODE: ${MODE:-local}
+    command: python /workspace/server_consumer/flask_server.py
+    networks:
+      - mynetwork
+    depends_on:
+      - kafka
+      - zookeeper
+
+  tensorboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tensorboard:1.0
+    command: tensorboard --logdir=/workspace/runs --port=6006
+    ports:
+      - "6006:6006"
+    volumes:
+      - dith_workspace:/workspace
+    networks:
+      - mynetwork
+    depends_on:
+      - dith
+
+volumes:
+  dith_workspace:
 
 networks:
   mynetwork:
