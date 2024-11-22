@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const host = (data && data.host) ? data.host.toString().trim().toLowerCase() : 'unknown';
         console.log('Received new frame from host:', host);
         
-        if (host === 'tallas2' && data.image) {
+        if (host === 'tallas2') {
             var img = document.getElementById('stream');
             img.src = 'data:image/png;base64,' + data.image;
             console.log('Updated image src:', img.src);
@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", function() {
     socket.on('connect', function() {
         console.log('Connected to server');
         socket.emit('join', { page: 'tallas2' });
-        console.log('Joined talls2 room');
+        console.log('Joined tallas2 room');
     });
     
     socket.on('disconnect', function() {

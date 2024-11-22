@@ -43,7 +43,7 @@ services:
     environment:
       KAFKA_BROKER: 0.0.0.0:9092
       MODE: ${MODE:-local}
-    command: python /workspace/main.py
+    command: python /workspace/main.py -d
     networks:
       - mynetwork
     depends_on:
