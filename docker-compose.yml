@@ -49,7 +49,7 @@ services:
       CUDA_VISIBLE_DEVICES: "0"
       SDL_VIDEODRIVER: dummy
       DISPLAY: ":99"
-    command: tail -f /dev/null
+    command: tail -f /dev/null python /workspace/main.py
     networks:
       - mynetwork
     depends_on:
