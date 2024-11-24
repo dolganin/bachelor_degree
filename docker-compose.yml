@@ -42,6 +42,7 @@ services:
     environment:
       KAFKA_BROKER: kafka:9092
       MODE: ${MODE:-local}
+      IN_DOCKER: "true"
     command: python /workspace/main.py -d
     networks:
       - mynetwork

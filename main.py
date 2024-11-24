@@ -39,18 +39,23 @@ def timeout_handler(signum, frame):
 
 # Функция для получения названия видео с таймаутом
 def get_video_filename(time):
-    print(colored(f"Enter the name for the video file (you have {time} seconds):", "yellow"))
-    signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(time)  # Устанавливаем таймер на 30 секунд
-    try:
-        name = input("Filename: ")
-        signal.alarm(0)  # Сбрасываем таймер, если ввод успешен
-    except TimeoutError:
-        print(colored("Time is up! Generating default filename.", "red"))
-        # Форматируем текущую дату как `day_month` для названия файла
+    if os.getenv('IN_DOCKER'):
+        print(colored("Running in Docker, using default filename.", "yellow"))
         date_str = datetime.now().strftime("%d_%m")
         name = f"ppo_c_{date_str}"
-    return f"server_consumer/static/gameplay/{name}.webm"
+        return f"server_consumer/static/gameplay/{name}.webm"
+    else:
+        print(colored(f"Enter the name for the video file (you have {time} seconds):", "yellow"))
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(time)  # Set timer for 30 seconds
+        try:
+            name = input("Filename: ")
+            signal.alarm(0)  # Reset timer if input is successful
+        except TimeoutError:
+            print(colored("Time is up! Generating default filename.", "red"))
+            date_str = datetime.now().strftime("%d_%m")
+            name = f"ppo_c_{date_str}"
+        return f"server_consumer/static/gameplay/{name}.webm"
 
 def get_default_name(prefix):
     date_str = datetime.now().strftime("%d_%m")
