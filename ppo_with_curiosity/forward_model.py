@@ -16,7 +16,7 @@ class ForwardModelCNN(nn.Module):
         self.input_width = input_width
         
         # Инициализация ResNet34 в качестве энкодера
-        resnet = models.resnet34(pretrained=True)
+        resnet = models.resnet34(pretrained=False)
         # Извлекаем только слои до последнего слоя классификации
         modules = list(resnet.children())[:-2]  # Убираем avgpool и fc
         self.encoder = nn.Sequential(*modules)
