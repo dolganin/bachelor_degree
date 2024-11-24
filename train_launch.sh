@@ -58,11 +58,11 @@ if [ ! -d "$DOOMITH_DIR/.git" ]; then
     cd ..
     pip install .
 fi
-cd ..
+cd ../bachelor_degree
 
 # Run the training script with all passed arguments
 echo "Starting training..."
-python bachelor_degree/main.py "$@"
+python main.py "$@"
 
 # Deactivate the virtual environment after the script finishes
 deactivate
