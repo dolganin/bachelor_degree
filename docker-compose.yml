@@ -11,6 +11,7 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
     networks:
       - mynetwork
+    restart: always
 
   zookeeper:
     image: wurstmeister/zookeeper:latest
@@ -18,6 +19,7 @@ services:
       - "2181:2181"
     networks:
       - mynetwork
+    restart: always
 
   kafka_dith:
     build:
@@ -33,6 +35,7 @@ services:
     depends_on:
       - kafka
       - zookeeper
+    restart: always
 
   dith:
     build:
@@ -44,14 +47,15 @@ services:
       KAFKA_BROKER: kafka:9092
       MODE: ${MODE:-local}
       CUDA_VISIBLE_DEVICES: "0"
-      IN_DOCKER: "true"
-    command: python /workspace/main.py -d
+      SDL_VIDEODRIVER: dummy
+      DISPLAY: ":99"
+    command: tail -f /dev/null
     networks:
       - mynetwork
     depends_on:
       - kafka
       - zookeeper
-      
+    restart: always
 
   flask_server:
     build:
@@ -69,6 +73,7 @@ services:
       - zookeeper
     ports:
       - "5000:5000"
+    restart: always
 
   tensorboard:
     build:
@@ -84,6 +89,7 @@ services:
       - mynetwork
     depends_on:
       - dith
+    restart: always
 
 volumes:
   dith_workspace:

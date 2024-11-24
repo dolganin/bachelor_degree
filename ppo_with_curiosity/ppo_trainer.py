@@ -50,6 +50,7 @@ class PPOTrainer(TrainerRL):
         with trange(steps_per_epoch, desc=f"Epoch {episode}", unit="step") as t:
             for _ in t:
                 # Получение и предобработка текущего состояния
+                print(self.env.is_episode_finished())
                 raw_state = self.env.get_state().screen_buffer
                 state = preprocess(raw_state, resolution=self.resolution)
 
