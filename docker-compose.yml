@@ -21,35 +21,15 @@ services:
       - mynetwork
     restart: always
 
-  kafka_dith:
+  kafka_consumer:
     build:
       context: .
       dockerfile: Dockerfile
-    image: kafka_dith:1.2
+    image: kafka_consumer:1.0
     environment:
       KAFKA_BROKER: kafka:9092
       MODE: ${MODE:-local}
     command: python /workspace/server_consumer/kafka_consumer.py
-    networks:
-      - mynetwork
-    depends_on:
-      - kafka
-      - zookeeper
-    restart: always
-
-  dith:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: dith:1.3
-    runtime: nvidia
-    environment:
-      KAFKA_BROKER: kafka:9092
-      MODE: ${MODE:-local}
-      CUDA_VISIBLE_DEVICES: "0"
-      SDL_VIDEODRIVER: dummy
-      DISPLAY: ":99"
-    command: tail -f /dev/null python /workspace/main.py
     networks:
       - mynetwork
     depends_on:
@@ -75,24 +55,8 @@ services:
       - "5000:5000"
     restart: always
 
-  tensorboard:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: tensorboard:1.0
-    command: tensorboard --logdir=/workspace/runs --port=6006
-    ports:
-      - "6006:6006"
-    volumes:
-      - dith_workspace:/workspace
-    networks:
-      - mynetwork
-    depends_on:
-      - dith
-    restart: always
-
 volumes:
-  dith_workspace:
+  kafka_data:
 
 networks:
   mynetwork:

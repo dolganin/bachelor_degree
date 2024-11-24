@@ -29,7 +29,7 @@ RUN curl -O https://downloads.apache.org/kafka/3.8.1/kafka-3.8.1-src.tgz && \
 WORKDIR /workspace
 
 # Создание и активация виртуального окружения Python
-ENV VENV_PATH=/workspace/dith
+ENV VENV_PATH=/workspace/venv
 ENV PATH="$VENV_PATH/bin:$PATH"
 RUN python3.10 -m venv $VENV_PATH
 RUN . $VENV_PATH/bin/activate && \
@@ -40,11 +40,6 @@ RUN . $VENV_PATH/bin/activate && \
 COPY requirements.txt /workspace/requirements.txt
 RUN . $VENV_PATH/bin/activate && pip install -r /workspace/requirements.txt
 
-# Клонирование DoomITH
-RUN git clone https://github.com/dolganin/DoomITH.git /workspace/DoomITH
-RUN mkdir -p /workspace/DoomITH/build && cd /workspace/DoomITH/build && \
-    cmake .. && make -j$(nproc) && cd .. && pip install .
-
 # Копирование проекта
 COPY . /workspace/
 
@@ -52,5 +47,5 @@ COPY . /workspace/
 ENV SDL_VIDEODRIVER=dummy
 ENV DISPLAY=:99
 
-# Контейнер запускается в режиме ожидания
+# Установка Kafka consumer/server как команды по умолчанию
 CMD ["tail", "-f", "/dev/null"]
