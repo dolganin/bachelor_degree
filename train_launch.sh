@@ -57,8 +57,9 @@ if [ ! -d "$DOOMITH_DIR/.git" ]; then
     make -j$(nproc)
     cd ..
     pip install .
+    cd ..
 fi
-cd ../
+
 
 # Run the training script with all passed arguments
 echo "Starting training..."
