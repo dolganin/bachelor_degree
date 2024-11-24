@@ -58,6 +58,7 @@ if [ ! -d "$DOOMITH_DIR/.git" ]; then
     cd ..
     pip install .
 fi
+cd ..
 
 # Run the training script with all passed arguments
 echo "Starting training..."
