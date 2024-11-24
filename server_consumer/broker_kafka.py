@@ -62,11 +62,3 @@ def publish_data(array: np.ndarray, epoch: int, loss: float, mode: str, mean_rew
 
     except Exception as e:
         logger.error(f"Error publishing message: {e}")
-
-# Optional: Periodically flush the producer
-# def flush_producer():
-#     producer.flush()
-#     # Schedule the next flush
-#     # threading.Timer(60, flush_producer).start()
-
-# Call flush_producer() if you want periodic flushes

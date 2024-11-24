@@ -31,17 +31,18 @@ def get_remote_server_url():
         logger.error(f"Error reading host_dith.conf: {e}")
         return None
 
-# Set server URL based on mode
 if mode == 'remote':
     server_url = get_remote_server_url()
     if not server_url:
         logger.error("Cannot determine remote server URL. Exiting.")
         sys.exit(1)
 elif mode == 'local':
-    server_url = "http://0.0.0.0:5000/update_frame"
+    # Use the name of the service from docker-compose.yml
+    server_url = "http://flask_server:5000/update_frame"
 else:
     logger.error(f"Unknown mode: {mode}. Exiting.")
     sys.exit(1)
+
 
 # Log the server URL for debugging
 logger.info(f"Sending frames to {server_url}")
@@ -75,7 +76,7 @@ def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward):
                 'loss': loss,
                 'mode': mode,
                 'meanReward': mean_reward,
-                'page': socket.gethostname(),  # Corresponds to the Kafka topic
+                'page': "doom_screen",  # Corresponds to the Kafka topic
                 'hostname': socket.gethostname()
             }
         )
