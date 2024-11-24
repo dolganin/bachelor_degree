@@ -1,22 +1,10 @@
 #!/bin/bash
 
-# Define workspace directory
-WORKSPACE_DIR="/workspace/code/bachelor_degree"
-
-# Ensure workspace directory exists
-mkdir -p "$WORKSPACE_DIR"
-
-# Check if DoomITH repository is already cloned
-
-# Build and install DoomITH
-
-cd "$WORKSPACE_DIR"
-
 # Get the script's directory
 SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 
 # Define the name of the virtual environment directory
-VENV_DIR="venv"
+VENV_DIR="$SCRIPT_DIR/bd_env"
 
 # Check if the virtual environment directory exists
 if [ ! -d "$VENV_DIR" ]; then
@@ -28,25 +16,11 @@ fi
 source "$VENV_DIR/bin/activate"
 
 # Check if reqs/nn_requirements.txt exists
-REQ_FILE="reqs/nn_requirements.txt"
+REQ_FILE="$SCRIPT_DIR/reqs/nn_requirements.txt"
 if [ ! -f "$REQ_FILE" ]; then
     echo "Error: $REQ_FILE not found."
     deactivate
     exit 1
-fi
-
-DOOMITH_DIR="$WORKSPACE_DIR/DoomITH"
-if [ ! -d "$DOOMITH_DIR/.git" ]; then
-    echo "Cloning DoomITH repository..."
-    git clone https://github.com/dolganin/DoomITH.git "$DOOMITH_DIR"
-    echo "Building and installing DoomITH..."
-    cd "$DOOMITH_DIR" || exit
-    mkdir -p build
-    cd build || exit
-    cmake ..
-    make -j$(nproc)
-    cd ..
-    pip install .
 fi
 
 # Calculate the current hash of nn_requirements.txt
@@ -68,6 +42,21 @@ if [ "$CURRENT_HASH" != "$STORED_HASH" ]; then
     echo "$CURRENT_HASH" > "$STORED_HASH_FILE"
 else
     echo "Packages already installed and requirements have not changed."
+fi
+
+# Check if DoomITH repository is already cloned
+DOOMITH_DIR="$SCRIPT_DIR/DoomITH"
+if [ ! -d "$DOOMITH_DIR/.git" ]; then
+    echo "Cloning DoomITH repository..."
+    git clone https://github.com/dolganin/DoomITH.git "$DOOMITH_DIR"
+    echo "Building and installing DoomITH..."
+    cd "$DOOMITH_DIR" || exit
+    mkdir -p build
+    cd build || exit
+    cmake ..
+    make -j$(nproc)
+    cd ..
+    pip install .
 fi
 
 # Run the training script with all passed arguments
