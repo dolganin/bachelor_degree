@@ -3,6 +3,10 @@ import os
 from termcolor import colored
 from colorama import init
 
+import os
+os.environ["SDL_VIDEODRIVER"] = "offscreen"
+os.environ["SDL_AUDIODRIVER"] = "dummy"
+
 # Инициализация colorama для поддержки цветного вывода
 init(autoreset=True)
 
