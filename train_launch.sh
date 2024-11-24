@@ -62,7 +62,7 @@ cd ..
 
 # Run the training script with all passed arguments
 echo "Starting training..."
-python main.py "$@"
+python bachelor_degree/main.py "$@"
 
 # Deactivate the virtual environment after the script finishes
 deactivate
