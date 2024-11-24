@@ -28,7 +28,7 @@ fi
 source "$VENV_DIR/bin/activate"
 
 # Check if reqs/nn_requirements.txt exists
-REQ_FILE="$SCRIPT_DIR/reqs/nn_requirements.txt"
+REQ_FILE="reqs/nn_requirements.txt"
 if [ ! -f "$REQ_FILE" ]; then
     echo "Error: $REQ_FILE not found."
     deactivate
