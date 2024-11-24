@@ -36,16 +36,13 @@ RUN . $VENV_PATH/bin/activate && \
     pip install --upgrade pip && \
     pip install numpy
 
-# Копирование зависимостей Python
-COPY requirements.txt /workspace/requirements.txt
-RUN . $VENV_PATH/bin/activate && pip install -r /workspace/requirements.txt
+# Копирование зависимостей Python для frontend
+COPY reqs/front_requirements.txt /workspace/front_requirements.txt
+RUN . $VENV_PATH/bin/activate && pip install -r /workspace/front_requirements.txt
 
 # Копирование проекта
 COPY . /workspace/
 
-# Установка переменных среды
-ENV SDL_VIDEODRIVER=dummy
-ENV DISPLAY=:99
 
 # Установка Kafka consumer/server как команды по умолчанию
 CMD ["tail", "-f", "/dev/null"]
