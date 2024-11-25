@@ -5,10 +5,7 @@ import torch.nn as nn
 from torch.optim import Adam
 from torch.distributions import Normal
 import numpy as np
-from collections import deque
-import random
-
-from abc import ABC, abstractmethod
+import torch.nn.functional as F  # Import F for Huber loss
 
 from ppo_with_curiosity.pnetwork import PolicyNetwork
 from ppo_with_curiosity.vnetwork import ValueNetwork
@@ -168,8 +165,8 @@ class PPOAgent(RLAgent):
         advantages = (combined_rewards + self.discount_factor * next_values * (1 - dones.float()) - values).detach()
         returns = combined_rewards + self.discount_factor * next_values * (1 - dones.float())
 
-        # Обновление Value Network
-        value_loss = nn.MSELoss()(values, returns)
+        # Update Value Network using Huber loss
+        value_loss = F.smooth_l1_loss(values, returns)
         self.value_optimizer.zero_grad()
         value_loss.backward()
         self.value_optimizer.step()
@@ -202,13 +199,9 @@ class PPOAgent(RLAgent):
         return policy_loss.item(), value_loss.item()
 
     def update_forward_model(self):
-        """
-        Обновление Forward Model на основе данных из Replay Buffer.
-        """
         if len(self.forward_replay_buffer) < self.batch_size:
-            return 0.0  # Недостаточно данных для обучения Forward Model
+            return 0.0  # Not enough data to train the forward model
 
-        # Получение данных из Replay Buffer
         states, actions, next_states, rewards, combined_rewards, log_probs, dones = \
             self.forward_replay_buffer.sample(self.batch_size)
         
@@ -216,13 +209,11 @@ class PPOAgent(RLAgent):
         actions = torch.FloatTensor(actions).to(self.device)       # (batch_size, action_dim)
         next_states = torch.FloatTensor(next_states).to(self.device) # (batch_size, C, H, W)
         
-        # Предсказание следующего состояния
         predicted_next_states = self.forward_model(states, actions)
         
-        # Вычисление потерь
-        forward_loss = nn.MSELoss()(predicted_next_states, next_states)
+        # Use Huber loss for the forward model
+        forward_loss = F.smooth_l1_loss(predicted_next_states, next_states)
         
-        # Обновление Forward Model
         self.forward_optimizer.zero_grad()
         forward_loss.backward()
         self.forward_optimizer.step()
