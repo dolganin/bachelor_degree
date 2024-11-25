@@ -22,7 +22,9 @@ class YAMLParser():
 
 def constants(yml: dict = None) -> List:
     if yml:
-        learning_rate = yml["learning_parameters"]["learning_rate"]
+        learning_rate_forward = yml["learning_parameters"]["learning_rate_forward"]
+        learning_rate_policy = yml["learning_parameters"]["learning_rate_policy"]
+        learning_rate_value = yml["learning_parameters"]["learning_rate_value"]
         batch_size = yml["learning_parameters"]["batch_size"]
         replay_memory_size = yml["learning_parameters"]["replay_memory_size"]
         discount_factor = yml["learning_parameters"]["discount_factor"]
@@ -56,7 +58,7 @@ def constants(yml: dict = None) -> List:
     else:
         raise Exception("Path to .yaml is None")
 
-    return  (learning_rate, batch_size, replay_memory_size, discount_factor, train_epochs,
+    return  (learning_rate_forward, learning_rate_policy, learning_rate_value, batch_size, replay_memory_size, discount_factor, train_epochs,
             frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch,
             weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
             patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, ex_loss, 

@@ -20,7 +20,9 @@ class PPOAgent(RLAgent):
                  memory_size: int,
                  batch_size: int,
                  discount_factor: float,
-                 lr: float,
+                 lr_forward: float,
+                 lr_value: float,
+                 lr_policy: float,
                  device: torch.device,
                  lambda_intrinsic: float = 0.1,
                  entropy_coef: float = 0.01,
@@ -61,7 +63,10 @@ class PPOAgent(RLAgent):
         self.device = device
         self.memory_size = memory_size
         self.batch_size = batch_size
-        self.lr = lr
+        self.lr_forward = lr_forward
+        self.lr_value = lr_value
+        self.lr_policy = lr_policy
+        
         self.discount_factor = discount_factor
         self.screen_resolution = screen_resolution
         self.channels = channels
@@ -98,9 +103,9 @@ class PPOAgent(RLAgent):
         ).to(self.device)
         
         # Инициализация оптимизаторов
-        self.policy_optimizer = Adam(self.policy_net.parameters(), lr=self.lr)
-        self.value_optimizer = Adam(self.value_net.parameters(), lr=self.lr)
-        self.forward_optimizer = Adam(self.forward_model.parameters(), lr=self.lr)
+        self.policy_optimizer = Adam(self.policy_net.parameters(), lr=self.lr_policy)
+        self.value_optimizer = Adam(self.value_net.parameters(), lr=self.lr_value)
+        self.forward_optimizer = Adam(self.forward_model.parameters(), lr=self.lr_forward)
         
         # Инициализация Replay Buffer для Forward Model
         self.forward_replay_buffer = ReplayBuffer(capacity=self.memory_size)

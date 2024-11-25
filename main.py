@@ -169,16 +169,18 @@ def main() -> None:
 
     # Распаковка параметров из конфигурации
     try:
-        (learning_rate, batch_size, replay_memory_size, discount_factor, train_epochs,
-            frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch,
-            weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
+        (learning_rate_forward, learning_rate_policy, learning_rate_value, batch_size, replay_memory_size, 
+         discount_factor, train_epochs, frame_repeat, learning_steps_per_epoch, cfg_path, resolution, 
+         test_episodes_per_epoch, weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
             patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, 
             ex_loss, window_size, evaluate_every, fps) = constants(config)
         
         # Параметры конфигурации
 # Параметры конфигурации
         config_parameters = {
-            "Learning Rate": learning_rate,
+            "Learning Rate Forward": learning_rate_forward,
+            "Learning Rate Policy": learning_rate_policy,
+            "Learning Rate Value": learning_rate_value,
             "Batch Size": batch_size,
             "Memory Size": replay_memory_size,
             "Discount Factor": discount_factor,
@@ -228,7 +230,9 @@ def main() -> None:
             memory_size=replay_memory_size,
             batch_size=batch_size,
             discount_factor=discount_factor,
-            lr=learning_rate,
+            lr_forward=learning_rate_forward,
+            lr_policy=learning_rate_policy,
+            lr_value=learning_rate_value,
             device=DEVICE,
             lambda_intrinsic=lambda_intrinsic,
             entropy_coef=entropy_coef,

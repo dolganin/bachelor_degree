@@ -44,6 +44,7 @@ RUN . $VENV_PATH/bin/activate && pip install -r /workspace/front_requirements.tx
 COPY server_consumer /workspace/server_consumer
 COPY .env /workspace/.env
 COPY host_dith.conf /workspace/host_dith.conf
+COPY runs /workspace/runs
 
 # Установка Kafka consumer/server как команды по умолчанию
 CMD ["tail", "-f", "/dev/null"]
