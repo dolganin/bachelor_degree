@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const host = (data && data.host) ? data.host.toString().trim().toLowerCase() : 'unknown';
         console.log('Received new frame from host:', host);
         
-        if (host === 'tallas2') {
+        if (host === 'b96b979aa5d1') {
             var img = document.getElementById('stream');
             img.src = 'data:image/png;base64,' + data.image;
             console.log('Updated image src:', img.src);

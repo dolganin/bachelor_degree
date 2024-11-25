@@ -165,6 +165,8 @@ _vizdoom.ini
 *.avi
 *.wmv
 host_dith.conf
+DoomITH/
+bd_env
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
