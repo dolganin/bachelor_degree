@@ -194,7 +194,6 @@ class PPOAgent(RLAgent):
 
         if torch.isnan(policy_loss).any():
             print(f"Warning: NaN detected in policy loss calculation!")
-            policy_loss = torch.zeros_like(policy_loss)
 
         self.policy_optimizer.zero_grad()
         policy_loss.backward()
@@ -241,6 +240,7 @@ class PPOAgent(RLAgent):
         """
         Добавлеие в память модели предыдущего состояния для стабилизации обучения (впервые применено Minh. et al 2015 в Atari)
         """
+
         self.forward_replay_buffer.push(state, action, next_state, combined_reward, action_log_prob, reward, done)
 
     def compute_total_loss(self):

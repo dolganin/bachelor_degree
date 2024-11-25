@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 # Kafka producer configuration
 producer_config = {
-    'bootstrap.servers': 'localhost:9092',  # Update with the correct broker address
-    'message.max.bytes': 1000000,  # Increase if larger messages are expected
-    'compression.type': 'snappy'  # Optional: enable compression
+    'bootstrap.servers': 'kafka:9092',  # Use the service name 'kafka'
+    'message.max.bytes': 1000000,
+    'compression.type': 'snappy'
 }
 
 producer = Producer(producer_config)

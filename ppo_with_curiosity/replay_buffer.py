@@ -1,103 +1,149 @@
 import os
-import random
-import torch
-import pickle
 import numpy as np
-from collections import deque
+import torch
 
 class ReplayBuffer:
-    def __init__(self, capacity: int = 10000, momentum: float = 0.995):
+    def __init__(self, capacity: int = 10000, momentum: float = 0.995, state_size: tuple = (3, 120, 130), action_dim: int = 10):
         """
-        Инициализация буфера воспроизведения с затуханием.
+        Initialize the replay buffer with decay.
 
         Args:
-            capacity (int): Максимальная емкость буфера.
-            momentum (float): Коэффициент затухания для старых значений, по умолчанию 0.995.
+            capacity (int): Maximum capacity of the buffer.
+            momentum (float): Decay factor for existing transitions.
+            state_size (tuple): Shape of the state and next_state arrays.
+            action_dim (int): Dimension of the action vector.
         """
-        self.capacity = capacity  # Сохраняем емкость для повторной инициализации
+        self.capacity = capacity
         self.momentum = momentum
-        self.buffer = deque(maxlen=capacity)
-        self.dump_path = "dump_buffer.bin"
+        self.state_size = state_size
+        self.action_dim = action_dim
+        self.dump_path = "dump_buffer.npz"
 
-    def push(self, state: np.ndarray, action: int, next_state: np.ndarray, reward: float,
-             combined_reward: float, action_log_prob: np.ndarray, done: bool):
+        # Initialize arrays for each field with appropriate shapes and dtypes
+        self.states = np.zeros((capacity, *state_size), dtype=np.float32)
+        self.next_states = np.zeros((capacity, *state_size), dtype=np.float32)
+        self.actions = np.zeros((capacity, action_dim), dtype=np.float32)
+        self.rewards = np.zeros(capacity, dtype=np.float32)
+        self.combined_rewards = np.zeros(capacity, dtype=np.float32)
+        self.action_log_probs = np.zeros(capacity, dtype=np.float32)
+        self.dones = np.zeros(capacity, dtype=np.bool_)
+
+        self.pointer = 0
+        self.size = 0
+
+    def push(self, state: np.ndarray, action: np.ndarray, next_state: np.ndarray, reward: float,
+             combined_reward: float, action_log_prob: float, done: bool):
         """
-        Добавление нового перехода в буфер с применением коэффициента затухания для старых элементов.
+        Add a new transition to the buffer with decay applied to existing transitions.
 
         Args:
-            state (np.ndarray): Текущее состояние.
-            action (int): Действие агента.
-            next_state (np.ndarray): Следующее состояние.
-            reward (float): Награда за текущее действие.
-            combined_reward (float): Комбинированная награда.
-            action_log_prob (np.ndarray): Логарифм вероятности действия.
-            done (bool): Флаг завершения эпизода.
+            state (np.ndarray): Current state.
+            action (np.ndarray): Action vector.
+            next_state (np.ndarray): Next state.
+            reward (float): Reward for the action.
+            combined_reward (float): Combined reward.
+            action_log_prob (float): Log probability of the action.
+            done (bool): Episode termination flag.
         """
-        # Применение затухания для всех предыдущих переходов
-        self.buffer = deque([(s * self.momentum, a * self.momentum, ns * self.momentum, r * self.momentum,
-                              cr * self.momentum, alp * self.momentum, d) for s, a, ns, r, cr, alp, d in self.buffer],
-                            maxlen=self.buffer.maxlen)
+        # Ensure action is a NumPy array with the correct shape
 
-        # Добавление нового перехода
-        self.buffer.append((state, action, next_state, reward, combined_reward, action_log_prob, done))
+        # Apply decay to numerical fields excluding actions
+        self.states *= self.momentum
+        self.next_states *= self.momentum
+        self.rewards *= self.momentum
+        self.combined_rewards *= self.momentum
+        self.action_log_probs *= self.momentum
+
+        # Add new transition
+        self.states[self.pointer] = state
+        self.actions[self.pointer] = action
+        self.next_states[self.pointer] = next_state
+        self.rewards[self.pointer] = reward
+        self.combined_rewards[self.pointer] = combined_reward
+        self.action_log_probs[self.pointer] = action_log_prob
+        self.dones[self.pointer] = done
+
+        # Update pointer and size
+        self.pointer = (self.pointer + 1) % self.capacity
+        if self.size < self.capacity:
+            self.size += 1
 
     def sample(self, batch_size: int):
         """
-        Сэмплирование батча из буфера.
+        Sample a batch of transitions from the buffer.
 
         Args:
-            batch_size (int): Размер батча.
+            batch_size (int): Size of the batch.
 
         Returns:
-            Tuple[torch.Tensor, ...]: Батч данных.
+            Tuple[torch.Tensor, ...]: Batch of transitions as PyTorch tensors.
         """
-        batch = random.sample(self.buffer, batch_size)
-        states, actions, next_states, rewards, combined_rewards, action_log_probs, dones = zip(*batch)
+        if self.size < batch_size:
+            raise ValueError("Not enough transitions to sample the requested batch size.")
 
-        return (
-            torch.stack([torch.FloatTensor(state) for state in states]),
-            torch.stack([torch.FloatTensor(action) for action in actions]),
-            torch.stack([torch.FloatTensor(next_state) for next_state in next_states]),
-            torch.FloatTensor(rewards),
-            torch.FloatTensor(combined_rewards),
-            torch.FloatTensor(action_log_probs),
-            torch.BoolTensor(dones)
-        )
+        # Randomly select indices
+        indices = np.random.choice(self.size, batch_size, replace=False)
+
+        # Gather transitions
+        states = torch.FloatTensor(self.states[indices])
+        actions = torch.FloatTensor(self.actions[indices])
+        next_states = torch.FloatTensor(self.next_states[indices])
+        rewards = torch.FloatTensor(self.rewards[indices])
+        combined_rewards = torch.FloatTensor(self.combined_rewards[indices])
+        action_log_probs = torch.FloatTensor(self.action_log_probs[indices])
+        dones = torch.BoolTensor(self.dones[indices])
+
+        return states, actions, next_states, rewards, combined_rewards, action_log_probs, dones
 
     def dump(self):
         """
-        Сохраняет содержимое буфера на диск в файл dump_buffer.bin и полностью удаляет буфер из памяти.
+        Save the buffer to disk and free up memory.
         """
-        # Убедимся, что файл существует
-        with open(self.dump_path, 'ab') as file:
-            pass  # Просто создаем файл, если его нет
-        with open(self.dump_path, 'wb') as file:
-            pickle.dump(self.buffer, file)
-        print("Buffer has been temporarily saved to disk as 'dump_buffer.bin'.")
+        # Save all arrays to a single .npz file
+        np.savez(self.dump_path,
+                 states=self.states,
+                 next_states=self.next_states,
+                 actions=self.actions,
+                 rewards=self.rewards,
+                 combined_rewards=self.combined_rewards,
+                 action_log_probs=self.action_log_probs,
+                 dones=self.dones,
+                 pointer=self.pointer,
+                 size=self.size)
 
-        # Полное удаление буфера и его элементов из памяти
-        for entry in list(self.buffer):
-            for item in entry:
-                del item  # Удаление каждого элемента перехода
-            del entry  # Удаление самого перехода
-        self.buffer.clear()  # Очистка буфера
-        del self.buffer  # Удаление ссылки на буфер
-        print("Buffer and its contents have been deleted from memory to free up RAM.")
+        # Delete arrays to free up memory
+        del self.states, self.next_states, self.actions, self.rewards, self.combined_rewards, self.action_log_probs, self.dones
+        self.states = None
+        self.next_states = None
+        self.actions = None
+        self.rewards = None
+        self.combined_rewards = None
+        self.action_log_probs = None
+        self.dones = None
+        self.pointer = 0
+        self.size = 0
+        print("Buffer has been dumped to disk and memory has been freed.")
 
     def load(self):
         """
-        Загружает содержимое буфера из файла dump_buffer.bin в ОЗУ.
-        После загрузки файл удаляется.
+        Load the buffer from disk.
         """
-        if os.path.exists(self.dump_path):
-            with open(self.dump_path, 'rb') as file:
-                self.buffer = pickle.load(file)
-            os.remove(self.dump_path)
-            print("Buffer has been loaded from disk and removed from 'dump_buffer.bin'.")
-        else:
-            # Повторная инициализация буфера, если файл отсутствует
-            self.buffer = deque(maxlen=self.capacity)
-            print("No buffer file found to load. Initialized a new empty buffer.")
+        if not os.path.exists(self.dump_path):
+            print("No buffer file found to load. Buffer remains empty.")
+            return
+
+        # Load all arrays from the .npz file
+        data = np.load(self.dump_path)
+        self.states = data['states']
+        self.next_states = data['next_states']
+        self.actions = data['actions']
+        self.rewards = data['rewards']
+        self.combined_rewards = data['combined_rewards']
+        self.action_log_probs = data['action_log_probs']
+        self.dones = data['dones']
+        self.pointer = data['pointer']
+        self.size = data['size']
+        print("Buffer has been loaded from disk.")
 
     def __len__(self):
-        return len(self.buffer) if self.buffer is not None else 0
+        return self.size
