@@ -1,8 +1,6 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-    
     <meta charset="UTF-8">
     <title>{{ server_name }} Training Stream</title>
     <link rel="icon" href="/static/resources/favicon.ico" type="image/x-icon">
@@ -12,15 +10,15 @@
 </head>
 <body>
     <div class="hover-little-thing">
-    <div class="urls">
-    <ul>
-        <li><a href="/">Main page</a></li>
-        <li><a href="/tallas2">Tallas2 Stream</a></li>
-        <li><a href="/aurora">Aurora Stream</a></li>
-        <li><a href="/apollo2">Apollo2 Stream</a></li>
-    </ul>
-    </div>
-        <h1> Training Stream</h1> 
+        <div class="urls">
+            <ul>
+                <li><a href="/">Main page</a></li>
+                <li><a href="/tallas2">Tallas2 Stream</a></li>
+                <li><a href="/aurora">Aurora Stream</a></li>
+                <li><a href="/apollo2">Apollo2 Stream</a></li>
+            </ul>
+        </div>
+        <h1> {{ page_name }} Training Stream</h1>
     </div>
     
     <div class="stats-container">
@@ -33,14 +31,12 @@
     <!-- Основной поток -->
     <img id="stream" alt="Video Stream" />
 
-    <!-- Локальное видео для лучшего захода агента -->
     <video id="best-video" controls="" autoplay="" muted="" loop="" width="fit-content">
         <source src="static/gameplay/best_video.webm" type="video/webm">
         Ваш браузер не поддерживает элемент <code>video</code>.
-        
     </video>
     <a href="http://talos2.ru:21936" class="logs-button">Logs</a>
+
+    <script src="/static/js/common.js"></script>  <!-- Общий скрипт для всех страниц -->
 </body>
 </html>
-
-

@@ -52,7 +52,7 @@ def create_black_image_with_text(text):
     img = Image.new('RGB', (1280, 720), color=(0, 0, 0))
     d = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("static/fonts/amazdoomleft.ttf", 52)
+        font = ImageFont.truetype("/workspace/server_consumer/static/fonts/amazdoomleft.ttf", 100)
     except IOError:
         font = ImageFont.load_default()
     text_bbox = d.textbbox((0, 0), text, font=font)
