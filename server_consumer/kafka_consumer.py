@@ -90,7 +90,7 @@ def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward):
 def consume_kafka_messages():
     """Consume messages from the 'doom_screen' Kafka topic."""
     consumer_config = {
-        'bootstrap.servers': '0.0.0.0:9092',
+        'bootstrap.servers': 'kafka:9092',  # Правильный адрес
         'group.id': 'flask-consumer-group',
         'auto.offset.reset': 'earliest'
     }
@@ -98,6 +98,7 @@ def consume_kafka_messages():
     consumer.subscribe(['doom_screen'])
     logger.info("Kafka consumer subscribed to 'doom_screen'")
     last_message_time = time.time()
+    
     while True:
         try:
             msg = consumer.poll(timeout=0.5)
@@ -144,6 +145,7 @@ def consume_kafka_messages():
             time.sleep(5)
     consumer.close()
     logger.info("Kafka consumer closed.")
+
 
 if __name__ == '__main__':
     consume_kafka_messages()

@@ -21,6 +21,18 @@ services:
       - mynetwork
     restart: always
 
+  kafka-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kafka_init:1.0
+    command: ["/bin/bash", "-c", "/workspace/scripts/wait-for-it.sh kafka:9092 -- /workspace/scripts/create_kafka_topic.sh"]
+    depends_on:
+      - kafka
+    networks:
+      - mynetwork
+    restart: "no"  # Этот сервис не перезапускается, он выполняется один раз
+
   kafka_consumer:
     build:
       context: .
@@ -33,8 +45,7 @@ services:
     networks:
       - mynetwork
     depends_on:
-      - kafka
-      - zookeeper
+      - kafka-init  # Зависимость от kafka-init
     restart: always
 
   flask_server:
@@ -49,20 +60,20 @@ services:
     networks:
       - mynetwork
     depends_on:
-      - kafka
-      - zookeeper
+      - kafka-init  # Зависимость от kafka-init
     ports:
       - "5000:5000"
+
   tensorboard:
-      image: tensorflow/tensorflow:latest
-      command: tensorboard --logdir=/workspace/runs --host=0.0.0.0 --port=6006
-      volumes:
-        - /workspace/code/bachelor_degree/runs:/workspace/code/bachelor_degree/runs
-      ports:
-        - "6006:6006"
-      networks:
-        - mynetwork
-      restart: always
+    image: tensorflow/tensorflow:latest
+    command: tensorboard --logdir=/workspace/runs --host=0.0.0.0 --port=6006
+    volumes:
+      - /workspace/code/bachelor_degree/runs:/workspace/code/bachelor_degree/runs
+    ports:
+      - "6006:6006"
+    networks:
+      - mynetwork
+    restart: always
 
 volumes:
   kafka_data:
