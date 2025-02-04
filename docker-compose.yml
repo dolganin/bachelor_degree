@@ -9,9 +9,24 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: "doom_screen:1:1"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
     networks:
       - mynetwork
+    depends_on:
+      - zookeeper
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --list --bootstrap-server localhost:9092"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+    command:
+      - /bin/bash
+      - -c
+      - |
+          /opt/kafka/bin/kafka-topics.sh --create --topic doom_screen --bootstrap-server kafka:9092 --partitions 3 --replication-factor 1
+          /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties
 
   zookeeper:
     image: wurstmeister/zookeeper:latest
@@ -20,18 +35,6 @@ services:
     networks:
       - mynetwork
     restart: always
-
-  kafka-init:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: kafka_init:1.0
-    command: ["/bin/bash", "-c", "/workspace/scripts/wait-for-it.sh kafka:9092 -- /workspace/scripts/create_kafka_topic.sh"]
-    depends_on:
-      - kafka
-    networks:
-      - mynetwork
-    restart: "no"  # Этот сервис не перезапускается, он выполняется один раз
 
   kafka_consumer:
     build:
@@ -45,7 +48,7 @@ services:
     networks:
       - mynetwork
     depends_on:
-      - kafka-init  # Зависимость от kafka-init
+      - kafka
     restart: always
 
   flask_server:
@@ -61,7 +64,7 @@ services:
     networks:
       - mynetwork
     depends_on:
-      - kafka-init  # Зависимость от kafka-init
+      - kafka
     ports:
       - "5000:5000"
 
