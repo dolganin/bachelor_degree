@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 # Kafka producer configuration
 producer_config = {
-    'bootstrap.servers': 'kafka:9092',  # Use the service name 'kafka'
+    'bootstrap.servers': 'localhost:9093',  # Use the service name 'kafka'
     'message.max.bytes': 1000000,
     'compression.type': 'snappy'
 }
