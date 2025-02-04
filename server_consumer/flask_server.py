@@ -12,7 +12,6 @@ socketio = SocketIO(app)
 
 # Determine mode from environment variable
 mode = os.environ.get('MODE', 'local').lower()
-env_page = os.environ.get('ENV_PAGE', 'default')
 
 if mode == 'remote':
     logger.info("Running in remote mode. Server not started.")
@@ -47,7 +46,7 @@ def apollo2():
 def update_frame():
     """Endpoint to update the frame."""
     data = request.json
-    required_fields = ['image', 'epoch', 'mode', 'loss', 'meanReward']
+    required_fields = ['image', 'epoch', 'mode', 'loss', 'meanReward', 'env_page']
     missing_fields = [field for field in required_fields if field not in data]
     if missing_fields:
         return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
@@ -55,6 +54,7 @@ def update_frame():
     image = data['image']
     epoch = data['epoch']
     mode = data['mode']
+
     try:
         loss = round(data['loss'], 2)
         meanReward = round(data['meanReward'], 2)
@@ -66,14 +66,14 @@ def update_frame():
         socketio.emit('new_frame',
                       {'image': image, 'loss': loss, 'epoch': epoch,
                        'meanReward': meanReward, 'mode': mode},
-                      room=env_page)
-        logger.debug(f"Frame sent to {env_page} room.")
+                      room=data['env_page'])
+        logger.debug(f"Frame sent to {data['env_page']} room.")
     except Exception as e:
         logger.error(f"Error processing frame data: {e}")
         socketio.emit('new_frame',
                       {'image': image, 'loss': "NaN", 'epoch': "Undefined",
                        'meanReward': "NaN", 'mode': mode},
-                      room=env_page)
+                      room=data['env_page'])
 
     return jsonify({'status': 'success'}), 200
 
@@ -83,7 +83,7 @@ def handle_connect():
 
 @socketio.on('join')
 def handle_join(data):
-    page = data.get('page')
+    page = data.get('env_page')
     if page:
         join_room(page)
         logger.info(f"Client joined room {page}")
@@ -92,7 +92,7 @@ def handle_join(data):
 
 @socketio.on('leave')
 def handle_leave(data):
-    page = data.get('page')
+    page = data.get('env_page')
     if page:
         leave_room(page)
         logger.info(f"Client left room {page}")

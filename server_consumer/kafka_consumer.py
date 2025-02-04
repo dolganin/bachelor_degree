@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Determine mode from environment variable
 mode = os.getenv('MODE', 'local').lower()
+env_page = os.getenv('ENV_PAGE', 'default')
 
 # Function to read remote server URL from configuration file
 def get_remote_server_url():
@@ -75,6 +76,7 @@ def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward):
                 'loss': loss,
                 'mode': mode,
                 'meanReward': mean_reward,
+                'env_page': env_page  # Add env_page to the payload
             }
         )
         if response.status_code == 200:
@@ -96,7 +98,7 @@ def consume_kafka_messages():
     logger.info("Kafka consumer subscribed to 'doom_screen'")
 
     last_message_time = time.time()
-    
+
     while True:
         try:
             msg = consumer.poll(timeout=0.5)
@@ -154,6 +156,6 @@ def send_initial_image():
 if __name__ == '__main__':
     # Step 1: Send initial black image
     send_initial_image()
-    
+
     # Step 2: Start consuming Kafka messages
     consume_kafka_messages()

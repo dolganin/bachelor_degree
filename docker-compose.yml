@@ -48,6 +48,7 @@ services:
     environment:
       KAFKA_BROKER: kafka:9092
       MODE: ${MODE:-local}
+      ENV_PAGE: tallas2
     command: python /workspace/server_consumer/kafka_consumer.py
     networks:
       - mynetwork
