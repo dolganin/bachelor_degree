@@ -26,7 +26,7 @@ else:
 @app.route('/')
 def index():
     """Route for the hub streams."""
-    return render_template('stream.html', page_name=env_page)
+    return render_template('hub/hub.html')
 
 @app.route('/tallas2')
 def tallas2():

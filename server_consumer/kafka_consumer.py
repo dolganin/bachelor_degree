@@ -43,7 +43,6 @@ else:
     logger.error(f"Unknown mode: {mode}. Exiting.")
     sys.exit(1)
 
-
 # Log the server URL for debugging
 logger.info(f"Sending frames to {server_url}")
 
@@ -90,13 +89,14 @@ def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward):
 def consume_kafka_messages():
     """Consume messages from the 'doom_screen' Kafka topic."""
     consumer_config = {
-        'bootstrap.servers': 'kafka:9092',  # Правильный адрес
+        'bootstrap.servers': 'kafka:9092',  # Correct address
         'group.id': 'flask-consumer-group',
         'auto.offset.reset': 'earliest'
     }
     consumer = Consumer(consumer_config)
     consumer.subscribe(['doom_screen'])
     logger.info("Kafka consumer subscribed to 'doom_screen'")
+
     last_message_time = time.time()
     
     while True:
@@ -146,6 +146,16 @@ def consume_kafka_messages():
     consumer.close()
     logger.info("Kafka consumer closed.")
 
+def send_initial_image():
+    """Send a black image initially before subscribing to Kafka."""
+    logger.info("Sending initial black image...")
+    image_base64 = create_black_image_with_text("DITH isn't learning right now")
+    send_frame_to_server(image_base64, 'Undefined', 'NaN', 'Undefined', 'NaN')
+    logger.info("Initial black image sent successfully.")
 
 if __name__ == '__main__':
+    # Step 1: Send initial black image
+    send_initial_image()
+    
+    # Step 2: Start consuming Kafka messages
     consume_kafka_messages()
