@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template
-from flask_socketio import SocketIO, join_room
+from flask_socketio import SocketIO, join_room, leave_room
 import logging
 import os
 
@@ -12,7 +12,7 @@ socketio = SocketIO(app)
 
 # Determine mode from environment variable
 mode = os.environ.get('MODE', 'local').lower()
-env_page = os.environ.get('ENV_PAGE', 'default_page').lower()  # Get the page from the environment variable
+env_page = os.environ.get('ENV_PAGE', 'default')
 
 if mode == 'remote':
     logger.info("Running in remote mode. Server not started.")
@@ -31,23 +31,23 @@ def index():
 @app.route('/tallas2')
 def tallas2():
     """Route for tallas2 stream."""
-    return render_template('stream.html', page_name=env_page)
+    return render_template('stream.html', server_name='Tallas2', page_name='tallas2')
 
 @app.route('/aurora')
 def aurora():
     """Route for aurora stream."""
-    return render_template('stream.html', page_name=env_page)
+    return render_template('stream.html', server_name='Aurora', page_name='aurora')
 
 @app.route('/apollo2')
 def apollo2():
     """Route for apollo2 stream."""
-    return render_template('stream.html', page_name=env_page)
+    return render_template('stream.html', server_name='Apollo2', page_name='apollo2')
 
 @app.route('/update_frame', methods=['POST'])
 def update_frame():
     """Endpoint to update the frame."""
     data = request.json
-    required_fields = ['image', 'epoch', 'mode', 'loss', 'meanReward', 'hostname']
+    required_fields = ['image', 'epoch', 'mode', 'loss', 'meanReward']
     missing_fields = [field for field in required_fields if field not in data]
     if missing_fields:
         return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
@@ -61,22 +61,20 @@ def update_frame():
     except:
         loss = "NaN"
         meanReward = "NaN"
-    hostname = data['hostname']
 
     try:
-        # Emit frame to room determined by ENV_PAGE
-        socketio.emit('new_frame', 
-                      {'image': image, 'loss': loss, 'epoch': epoch, 
-                       'meanReward': meanReward, 'mode': mode}, 
+        socketio.emit('new_frame',
+                      {'image': image, 'loss': loss, 'epoch': epoch,
+                       'meanReward': meanReward, 'mode': mode},
                       room=env_page)
+        logger.debug(f"Frame sent to {env_page} room.")
     except Exception as e:
         logger.error(f"Error processing frame data: {e}")
-        socketio.emit('new_frame', 
-                      {'image': image, 'loss': "NaN", 'epoch': "Undefined", 
-                       'meanReward': "NaN", 'mode': mode}, 
+        socketio.emit('new_frame',
+                      {'image': image, 'loss': "NaN", 'epoch': "Undefined",
+                       'meanReward': "NaN", 'mode': mode},
                       room=env_page)
 
-    logger.debug(f"Frame received and sent to {env_page} room.")
     return jsonify({'status': 'success'}), 200
 
 @socketio.on('connect')
@@ -85,10 +83,21 @@ def handle_connect():
 
 @socketio.on('join')
 def handle_join(data):
-    """Handle room joining."""
-    # Always join the room determined by ENV_PAGE
-    join_room(env_page)
-    logger.info(f"Client joined room {env_page}")
+    page = data.get('page')
+    if page:
+        join_room(page)
+        logger.info(f"Client joined room {page}")
+    else:
+        logger.warning("Client tried to join room without specifying page")
+
+@socketio.on('leave')
+def handle_leave(data):
+    page = data.get('page')
+    if page:
+        leave_room(page)
+        logger.info(f"Client left room {page}")
+    else:
+        logger.warning("Client tried to leave room without specifying page")
 
 @socketio.on('disconnect')
 def handle_disconnect():

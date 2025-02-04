@@ -75,8 +75,6 @@ def send_frame_to_server(image_base64, epoch, loss, mode, mean_reward):
                 'loss': loss,
                 'mode': mode,
                 'meanReward': mean_reward,
-                'page': "doom_screen",  # Corresponds to the Kafka topic
-                'hostname': socket.gethostname()
             }
         )
         if response.status_code == 200:
