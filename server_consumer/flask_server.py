@@ -54,7 +54,7 @@ def update_frame():
     image = data['image']
     epoch = data['epoch']
     mode = data['mode']
-
+    env_page = data['env_page']
     try:
         loss = round(data['loss'], 2)
         meanReward = round(data['meanReward'], 2)
@@ -66,14 +66,14 @@ def update_frame():
         socketio.emit('new_frame',
                       {'image': image, 'loss': loss, 'epoch': epoch,
                        'meanReward': meanReward, 'mode': mode},
-                      room=data['env_page'])
-        logger.debug(f"Frame sent to {data['env_page']} room.")
+                      room=env_page)
+        logger.debug(f"Frame sent to {env_page} room.")
     except Exception as e:
         logger.error(f"Error processing frame data: {e}")
         socketio.emit('new_frame',
                       {'image': image, 'loss': "NaN", 'epoch': "Undefined",
                        'meanReward': "NaN", 'mode': mode},
-                      room=data['env_page'])
+                      room=env_page)
 
     return jsonify({'status': 'success'}), 200
 
@@ -83,7 +83,7 @@ def handle_connect():
 
 @socketio.on('join')
 def handle_join(data):
-    page = data.get('env_page')
+    page = data.get('page')
     if page:
         join_room(page)
         logger.info(f"Client joined room {page}")
@@ -92,7 +92,7 @@ def handle_join(data):
 
 @socketio.on('leave')
 def handle_leave(data):
-    page = data.get('env_page')
+    page = data.get('page')
     if page:
         leave_room(page)
         logger.info(f"Client left room {page}")
