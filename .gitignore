@@ -168,6 +168,7 @@ host_dith.conf
 DoomITH/
 bd_env
 *.npz
+wandb/
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
