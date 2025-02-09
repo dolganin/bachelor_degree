@@ -28,31 +28,25 @@
 
 ## Установка
 
-### Установка (Docker)
-```bash
-docker build -t dith:1.0 .
-
-docker run -it --name dith_container -p 5000:5000 -p 6006:6006 dith:1.0
-```
-
-### Установка (вручную)
-
-Клонируйте репозиторий и создайте виртуальное окружение:
+Клонируйте репозиторий и перейдите в него:
 ```bash
 git clone https://github.com/dolganin/bachelor_degree.git
 cd bachelor_degree
-python3 -m venv env
-source env/bin/activate
 ```
 
-Установите зависимости из `requirements.txt`:
-
-pip install -r requirements.txt
-
-Установите DoomITH:
+Соберите контейнер для фронтенда и сервера
 ```bash
-git clone https://github.com/dolganin/DoomITH.git
-cd DoomITH
+docker-compose up --build -d
+```
+
+Установите необходимые пакеты
+```bash
+sudo apt-get upgrade
+
+sudo apt install g++ gcc
+sudo apt install cmake make
+sudo apt install libsdl2-dev
+sudo apt install libboost-all-dev
 ```
 
 ## Структура проекта
@@ -64,7 +58,6 @@ configs/                # Конфигурационные файлы (YAML)
 main.py                 # Основной файл запуска
 create_kafka_topic.sh   # Скрипт для создания Kafka-топика
 ppo_with_curiosity/     # Модули PPO с реализацией любопытства
-q_learning/             # Реализация Q-learning для сравнения
 requirements.txt        # Файл зависимостей проекта
 runs/                   # Директория для сохранения экспериментов
 scenarios/              # Doom сценарии для RL среды
@@ -125,5 +118,5 @@ ppo_parameters:
 env_parameters:
   resolution: [120, 130]             # Размер экрана (высота и ширина)
 
-doom_cfg_path: "scenarios/defend_the_line.cfg"  # Путь к файлу конфигурации Doomlearning_parameters:
+doom_cfg_path: "defend_the_line.cfg"  # Путь к файлу конфигурации Doomlearning_parameters:
 ```

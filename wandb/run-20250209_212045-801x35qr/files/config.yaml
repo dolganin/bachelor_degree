@@ -1,0 +1,79 @@
+_wandb:
+    value:
+        cli_version: 0.19.6
+        m: []
+        python_version: 3.10.12
+        t:
+            "1":
+                - 1
+                - 41
+                - 55
+            "2":
+                - 1
+                - 41
+                - 55
+            "3":
+                - 16
+                - 23
+                - 55
+            "4": 3.10.12
+            "5": 0.19.6
+            "8":
+                - 2
+                - 5
+            "12": 0.19.6
+            "13": linux-x86_64
+Batch Size:
+    value: 256
+Channels:
+    value: 3
+Clip Epsilon:
+    value: 0.5
+Configuration Path:
+    value: basic.cfg
+Discount Factor:
+    value: 0.75
+Dropout Rate:
+    value: 0.1
+Embedding Dimension:
+    value: 144
+Entropy Coefficient:
+    value: 0.9
+Extra Loss:
+    value: 0
+Frame Repeat:
+    value: 96
+Hidden Dimension:
+    value: 512
+Lambda Intrinsic:
+    value: 0.8
+Learning Rate Forward:
+    value: 0.0006
+Learning Rate Policy:
+    value: 0.0007
+Learning Rate Value:
+    value: 0.0001
+Learning Steps per Epoch:
+    value: 2000
+MLP Dimension:
+    value: 512
+Memory Size:
+    value: 2200
+Number of Heads:
+    value: 12
+Number of Layers:
+    value: 10
+Patch Size:
+    value: 10
+Resolution:
+    value:
+        - 120
+        - 130
+Test Episodes per Epoch:
+    value: 250
+Train Epochs:
+    value: 30
+Weight Decay:
+    value: 0.007
+Window Size:
+    value: 100

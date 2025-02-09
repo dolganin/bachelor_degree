@@ -15,6 +15,7 @@ from torch.cuda import is_available
 from datetime import datetime
 import signal
 from time import sleep
+import wandb
 
 # Инициализация colorama
 init(autoreset=True)
@@ -61,11 +62,9 @@ def get_default_name(prefix):
     date_str = datetime.now().strftime("%d_%m")
     return f"{prefix}_{date_str}"
 
-
-
 def get_latest_model_path(directory="weights"):
     """Возвращает путь к самой последней модели, соответствующей шаблону 'ppo_dd_mm.pth'."""
-    
+
     # Получаем все файлы, которые начинаются с `ppo_` и заканчиваются на `.pth`
     model_files = [
         f for f in os.listdir(directory)
@@ -75,7 +74,6 @@ def get_latest_model_path(directory="weights"):
     if not model_files:
         print_debug_message("No model files found matching pattern 'ppo_dd_mm.pth'.", "red")
         return None
-
     # Список для хранения файлов и их дат
     valid_models = []
     for f in model_files:
@@ -97,13 +95,9 @@ def get_latest_model_path(directory="weights"):
     latest_model_file = max(valid_models, key=lambda x: x[0])[1]
     return os.path.join(directory, latest_model_file)
 
-
-
-
 def main() -> None:
     # Устройство
     DEVICE = 'cuda:0' if is_available() else 'cpu'
-    #DEVICE = 'cpu'
     print_debug_message(f"Device selected for training: {DEVICE}", "green")
 
     parser = ArgumentParser(description='Bachelor Degree Script')
@@ -113,16 +107,16 @@ def main() -> None:
     parser.add_argument('-d', '--debug', action='store_true', help='Debug mode flag')
     parser.add_argument('-t', '--test', action='store_true', help='Test mode flag')
     parser.add_argument('--timer', type=int, help="Time for timer in awaiting", default=5)
-    
+
     args = parser.parse_args()
 
-
-    yaml, runname, weights, debug, test, timer = (args.yaml, args.runname, args.weights, args.debug, 
+    yaml, runname, weights, debug, test, timer = (args.yaml, args.runname, args.weights, args.debug,
                                                   args.test, args.timer)
 
     # Устанавливаем имена по умолчанию, если они не заданы
     runname = f"runs/{args.runname}" if args.runname else f"runs/{get_default_name('run')}"
-     # Логика определения пути к весам модели
+
+    # Логика определения пути к весам модели
     if weights is True:
         # Флаг задан, но путь не указан: загружаем последнюю модель
         weights = get_latest_model_path()
@@ -146,7 +140,7 @@ def main() -> None:
         "Debug Mode": debug,
         "Test Mode": test
     }
-    
+
     print_debug_message("Starting with the following parameters:", "yellow")
     print_parameters_table(parameters)
 
@@ -154,10 +148,6 @@ def main() -> None:
         warnings.filterwarnings("ignore")
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
         print_debug_message("Debug mode is off. Only errors will be displayed.", "red")
-
-    from torch.utils.tensorboard import SummaryWriter
-    writter = SummaryWriter(log_dir=runname)
-    print_debug_message(f"TensorBoard writer initialized at: {runname}", "green")
 
     # Загрузка конфигурации из YAML
     try:
@@ -169,14 +159,13 @@ def main() -> None:
 
     # Распаковка параметров из конфигурации
     try:
-        (learning_rate_forward, learning_rate_policy, learning_rate_value, batch_size, replay_memory_size, 
-         discount_factor, train_epochs, frame_repeat, learning_steps_per_epoch, cfg_path, resolution, 
-         test_episodes_per_epoch, weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
-            patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, 
-            ex_loss, window_size, evaluate_every, fps) = constants(config)
-        
+        (learning_rate_forward, learning_rate_policy, learning_rate_value, batch_size, replay_memory_size,
+         discount_factor, train_epochs, frame_repeat, learning_steps_per_epoch, cfg_path, resolution,
+         test_episodes_per_epoch, weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels,
+         patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim,
+         ex_loss, window_size, evaluate_every, fps) = constants(config)
+
         # Параметры конфигурации
-# Параметры конфигурации
         config_parameters = {
             "Learning Rate Forward": learning_rate_forward,
             "Learning Rate Policy": learning_rate_policy,
@@ -206,12 +195,16 @@ def main() -> None:
             "Window Size": window_size
         }
 
-        
         print_debug_message("Parameters extracted from config:", "yellow")
         print_parameters_table(config_parameters)
     except Exception as e:
         print_debug_message(f"Error extracting parameters: {e}", "red")
         return
+
+    # Инициализация wandb с параметрами из YAML
+    wandb.init(project="DITH", entity="dolganin", config=config_parameters)
+    wandb_run_name = wandb.run.name
+    print_debug_message(f"WandB initialized with run name: {wandb_run_name}", "green")
 
     # Инициализация игры и действий
     try:
@@ -247,7 +240,7 @@ def main() -> None:
             num_layers=num_layers,                       # Задает количество слоев в трансформере
             mlp_dim=mlp_dim,                        # Размерность MLP в трансформере
             ex_loss=ex_loss                         # Задает коэффициент внешней потери
-)
+        )
         print_debug_message("Agent successfully initialized.", "green")
     except Exception as e:
         print_debug_message(f"Error initializing agent: {e}", "red")
@@ -268,7 +261,7 @@ def main() -> None:
         trainer = PPOTrainer(
             agent=agent,
             env=game,
-            tensor_logger=writter,
+            tensor_logger=wandb,
             device=DEVICE,
             steps_per_epoch=learning_steps_per_epoch,
             resolution=resolution,
@@ -290,8 +283,6 @@ def main() -> None:
         print_debug_message(f"Error initializing trainer: {e}", "red")
         return
 
-    
-
     # Запуск обучения
     print_debug_message("Starting training...", "yellow")
     if not debug:
@@ -305,7 +296,6 @@ def main() -> None:
         trainer.run(epochs=train_epochs, evaluate_every=evaluate_every)
 
     print_debug_message("Script finished execution.", "blue")
-
 
 if __name__ == "__main__":
     main()

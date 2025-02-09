@@ -75,17 +75,6 @@ services:
     ports:
       - "5000:5000"
 
-  tensorboard:
-    image: tensorflow/tensorflow:latest
-    command: tensorboard --logdir=/workspace/runs --host=0.0.0.0 --port=6006
-    volumes:
-      - /workspace/code/bachelor_degree/runs:/workspace/code/bachelor_degree/runs
-    ports:
-      - "6006:6006"
-    networks:
-      - mynetwork
-    restart: always
-
 volumes:
   kafka_data:
 
