@@ -202,9 +202,9 @@ def main() -> None:
         return
 
     # Инициализация wandb с параметрами из YAML
-    wandb.init(project="DITH", entity="dolganin", config=config_parameters)
+    wandb.init(project="DITH", entity="dolganin", config=config_parameters, name=runname)
     wandb_run_name = wandb.run.name
-    print_debug_message(f"WandB initialized with run name: {wandb_run_name}", "green")
+    print_debug_message(f"WandB initialized with run name: {runname}", "green")
 
     # Инициализация игры и действий
     try:
@@ -261,7 +261,7 @@ def main() -> None:
         trainer = PPOTrainer(
             agent=agent,
             env=game,
-            tensor_logger=wandb,
+            wandb_logger=wandb,
             device=DEVICE,
             steps_per_epoch=learning_steps_per_epoch,
             resolution=resolution,

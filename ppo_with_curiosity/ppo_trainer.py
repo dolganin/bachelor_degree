@@ -12,7 +12,7 @@ import cv2
 from base.agent_evaluator import AgentEvaluator
 
 class PPOTrainer(TrainerRL):
-    def __init__(self, env, agent: Module, video_logger: VideoLogger=None, tensor_logger=None,  
+    def __init__(self, env, agent: Module, video_logger: VideoLogger=None, wandb_logger=None,  
                  device: str = "cpu", resolution: tuple = (30, 45), frame_repeat: int = 45, 
                  steps_per_epoch: int = 1000, actions: list = None, test_episodes_per_epoch: int = 1000, 
                  model_savefile: str = None, buffer_capacity: int = 10000, buffer_momentum: float = 0.995, 
@@ -23,7 +23,7 @@ class PPOTrainer(TrainerRL):
         self.current_step = 0
         self.total_rewards = []
         self.video_logger = video_logger
-        self.tensor_logger = tensor_logger
+        self.wandb_logger = wandb_logger
         self.device = device
         self.resolution = resolution
         self.frame_repeat = frame_repeat
@@ -97,6 +97,10 @@ class PPOTrainer(TrainerRL):
                 # Обучение агента, если буфер заполнен
                 if global_step > self.agent.batch_size // 10 and len(self.agent.forward_replay_buffer) >= self.agent.batch_size:
                     policy_loss, value_loss = self.agent.train_agent()
+                    self.wandb_logger.log({
+                        'Train policiy loss': policy_loss,
+                        'Train value loss': value_loss,
+                    })
                     loss_dict['policy_loss'] = loss_dict.get('policy_loss', []) + [policy_loss]
                     loss_dict['value_loss'] = loss_dict.get('value_loss', []) + [value_loss]
                 else:
@@ -118,6 +122,7 @@ class PPOTrainer(TrainerRL):
                 })
 
         forward_loss = self.agent.update_forward_model()
+        self.wandb_logger.log({"Forward Loss": forward_loss})
         loss_dict['forward_loss'] = loss_dict.get('forward_loss', []) + [forward_loss] if forward_loss > 0.0 else [0.0]
         
         average_policy_loss = np.mean(loss_dict['policy_loss']) if 'policy_loss' in loss_dict else 0.0

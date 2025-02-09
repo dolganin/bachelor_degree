@@ -77,7 +77,6 @@ class PPOAgent(RLAgent):
         self.num_layers = num_layers
         self.mlp_dim = mlp_dim
         self.ex_loss = ex_loss
-
         
         # Инициализация моделей
         self.shared_transformer = SharedTransformer(
@@ -125,7 +124,6 @@ class PPOAgent(RLAgent):
         # Проверка на NaN в mean и std
         if torch.any(torch.isnan(mean)) or torch.any(torch.isnan(std)):
             print(f"Warning: NaN detected in policy network output! mean: {mean}, std: {std}")
-            # Можно вернуть какое-то действие по умолчанию, чтобы избежать сбоев
             return np.zeros(self.action_size), torch.zeros_like(mean)
 
         action = dist.sample()

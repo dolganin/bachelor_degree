@@ -110,12 +110,15 @@ class TrainerRL(ABC):
             reward: Суммарная награда за эпизод.
             loss: Потери модели (если есть).
         """
-        self.tensor_logger.add_scalar('Forward loss', forward_loss, epoch)
-        self.tensor_logger.add_scalar('Policy loss', policy_loss, epoch)
-        self.tensor_logger.add_scalar('Value loss', value_loss, epoch)
-        self.tensor_logger.add_scalar('Test score mean', mean_reward, epoch)
-        self.tensor_logger.add_scalar('Test score std', std_reward, epoch)
-        self.tensor_logger.add_scalar('Mean loss', mean_loss, epoch)
+        self.wandb_logger.log({
+            'Mean Forward loss': forward_loss,
+            'Mean Policy loss': policy_loss,
+            'Mean Value loss': value_loss,
+            'Test score mean': mean_reward,
+            'Test score std': std_reward,
+            'Mean loss': mean_loss,
+            'Epoch': epoch
+        })
 
         print("Metrics of model was logged to tensorboard!")
 
@@ -157,7 +160,7 @@ class TrainerRL(ABC):
                                     mean_loss=mean_loss
                                     )
 
-                    elapsed_time = (time() - datetime.strptime(start_time, "%H:%M:%S:%d:%m").timestamp()) / 60.0
+                    elapsed_time = (time() - datetime.strptime(start_time, "%H:%M:%S:%d:%m").timestamp()) / 3600
                     print(Fore.CYAN + f"Total elapsed time: {elapsed_time:.2f} minutes" + Style.RESET_ALL)
                     
                     self.agent.forward_replay_buffer.load()

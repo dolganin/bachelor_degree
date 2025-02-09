@@ -37,10 +37,25 @@ def publish_data(array: np.ndarray, epoch: int, loss: float, mode: str, mean_rew
         _, buffer = cv2.imencode('.jpg', array)
         array_base64 = base64.b64encode(buffer).decode('utf-8')
 
-        # Ensure data types are correct
-        epoch = int(epoch)
-        loss = float(loss)
-        mean_reward = float(mean_reward)
+        # Ensure data types are correct and valid
+        try:
+            epoch = int(epoch)
+        except (ValueError, TypeError):
+            epoch = 0
+            logger.warning("Invalid epoch value. Setting to 0.")
+
+        try:
+            loss = float(loss)
+        except (ValueError, TypeError):
+            loss = 0.0
+            logger.warning("Invalid loss value. Setting to 0.0.")
+
+        try:
+            mean_reward = float(mean_reward)
+        except (ValueError, TypeError):
+            mean_reward = 0.0
+            logger.warning("Invalid mean reward value. Setting to 0.0.")
+
         if not isinstance(mode, str):
             logger.error("Mode must be a string.")
             return
