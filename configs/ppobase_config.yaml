@@ -32,4 +32,4 @@ env_parameters:
   resolution: [120, 130]             # Размер экрана (высота и ширина)
   fps: 20                            # Число кадров в секунду
 
-doom_cfg_path: "scenarios/basic.cfg"  # Путь к файлу конфигурации Doom
+doom_cfg_path: "basic.cfg"  # Путь к файлу конфигурации Doom

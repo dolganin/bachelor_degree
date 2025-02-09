@@ -60,6 +60,12 @@ if [ ! -d "$DOOMITH_DIR/.git" ]; then
     cd ..
 fi
 
+# Check if weights directory exists, create if not
+WEIGHTS_DIR="$SCRIPT_DIR/weights"
+if [ ! -d "$WEIGHTS_DIR" ]; then
+    echo "Creating weights directory at $WEIGHTS_DIR..."
+    mkdir -p "$WEIGHTS_DIR"
+fi
 
 # Run the training script with all passed arguments
 echo "Starting training..."
