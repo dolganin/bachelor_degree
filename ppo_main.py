@@ -154,7 +154,7 @@ def main() -> None:
             "Number of Layers": num_layers,
             "MLP Dimension": mlp_dim,
             "Extra Loss": ex_loss,
-            "Window Size": window_size\n        }
+            "Window Size": window_size        }
         print_debug_message("Parameters extracted from config:", "yellow")
         print_parameters_table(config_parameters)
     except Exception as e:
