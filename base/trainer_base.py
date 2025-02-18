@@ -8,7 +8,6 @@ from server_consumer.broker_kafka import publish_data
 import cv2
 from torch import argmax, Tensor
 from colorama import Fore, Style
-from datetime import datetime
 
 
 class TrainerRL(ABC):
@@ -75,7 +74,7 @@ class TrainerRL(ABC):
         test_scores = np.array(test_scores)
         total_loss = self.agent.compute_total_loss()
         
-        self.agent.forward_replay_buffer.dump()
+        self.agent.replay_buffer.dump()
         self.avaluator.evaluate_and_save(self, test_scores.mean(), test_scores.std(), total_loss)
         return test_scores
 
@@ -111,7 +110,7 @@ class TrainerRL(ABC):
             loss: Потери модели (если есть).
         """
         self.wandb_logger.log({
-            'Mean Forward loss': forward_loss,
+            # 'Mean Forward loss': forward_loss,
             'Mean Policy loss': policy_loss,
             'Mean Value loss': value_loss,
             'Test score mean': mean_reward,
@@ -130,7 +129,6 @@ class TrainerRL(ABC):
 
         with trange(epochs, desc="Training", unit="epoch", bar_format='{l_bar}{bar:20}{r_bar}{bar:-20b}') as pbar:
             for epoch in pbar:
-                start_time = datetime.now().strftime("%H:%M:%S:%d:%m")
                 test_scores = []
 
                 # Запуск тренировки на одном эпизоде
@@ -138,7 +136,7 @@ class TrainerRL(ABC):
                 self.total_rewards.append(reward)
 
                 # Обновление прогресс-бара с временем начала
-                pbar.set_postfix(epoch=epoch + 1, reward=reward, start_time=start_time)
+                pbar.set_postfix(epoch=epoch + 1, reward=reward)
 
                 # Периодическая оценка
                 if epoch % evaluate_every == 0:
@@ -146,7 +144,7 @@ class TrainerRL(ABC):
                     test_scores = self.evaluate()
                     test_scores = np.array(test_scores)
 
-                    forward_loss = np.array(loss_lst["forward_loss"]).mean()
+                    # forward_loss = np.array(loss_lst["forward_loss"]).mean()
                     policy_loss = np.array(loss_lst["policy_loss"]).mean()
                     value_loss = np.array(loss_lst["value_loss"]).mean()
                     mean_loss = (forward_loss + policy_loss + value_loss) / 3
@@ -154,16 +152,13 @@ class TrainerRL(ABC):
                     self.log_metrics(epoch, 
                                     mean_reward=test_scores.mean(), 
                                     std_reward=test_scores.std(),
-                                    forward_loss=forward_loss,
+                                    # forward_loss=forward_loss,
                                     policy_loss=policy_loss,
                                     value_loss=value_loss,
                                     mean_loss=mean_loss
                                     )
-
-                    elapsed_time = (time() - datetime.strptime(start_time, "%H:%M:%S:%d:%m").timestamp()) / 3600
-                    print(Fore.CYAN + f"Total elapsed time: {elapsed_time:.2f} minutes" + Style.RESET_ALL)
                     
-                    self.agent.forward_replay_buffer.load()
+                    self.agent.replay_buffer.load()
                     
                 pbar.update(1)
 
