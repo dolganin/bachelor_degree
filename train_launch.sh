@@ -69,7 +69,7 @@ fi
 
 # Run the training script with all passed arguments
 echo "Starting training..."
-python main.py "$@"
+python ppo_main.py "$@"
 
 # Deactivate the virtual environment after the script finishes
 deactivate
