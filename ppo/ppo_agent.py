@@ -5,10 +5,10 @@ from torch.distributions import Normal
 import numpy as np
 import torch.nn.functional as F
 
-from ppo_with_curiosity.pnetwork import PolicyNetwork
-from ppo_with_curiosity.vnetwork import ValueNetwork
-from ppo_with_curiosity.shared_transformer import SharedTransformer
-from ppo_with_curiosity.replay_buffer import ReplayBuffer
+from ppo.pnetwork import PolicyNetwork
+from ppo.vnetwork import ValueNetwork
+from ppo.shared_transformer import SharedTransformer
+from ppo.replay_buffer import ReplayBuffer
 from base.agent_base import RLAgent
 
 class PPOAgent(RLAgent):
@@ -152,4 +152,21 @@ class PPOAgent(RLAgent):
 
     
     def append_memory(self, state: np.ndarray, action: int, next_state: np.ndarray, reward: float, action_log_prob: np.ndarray, done: bool):
-        self.replay_buffer.push(state, action, next_state, reward, action_log_prob, done)
+        self.replay_buffer.push(state=state, action=action, next_state=next_state, reward=reward, action_log_prob=action_log_prob, done=done)
+
+    def update_target_net(self):
+        pass
+
+
+    def compute_total_loss(self):
+        """
+        Вычисляет общий лосс, складывая потери от Policy Network, Value Network и Forward Model.
+
+        Returns:
+            float: Общий лосс.
+        """
+        # Обучение агента и получение потерь
+        policy_loss, value_loss, _ = self.train_agent()
+        # Общий лосс
+        total_loss = policy_loss + value_loss
+        return total_loss

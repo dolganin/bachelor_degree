@@ -24,15 +24,13 @@ class ReplayBuffer:
         self.next_states = np.zeros((capacity, *state_size), dtype=np.float32)
         self.actions = np.zeros((capacity, action_dim), dtype=np.float32)
         self.rewards = np.zeros(capacity, dtype=np.float32)
-        self.combined_rewards = np.zeros(capacity, dtype=np.float32)
         self.action_log_probs = np.zeros(capacity, dtype=np.float32)
         self.dones = np.zeros(capacity, dtype=np.bool_)
 
         self.pointer = 0
         self.size = 0
 
-    def push(self, state: np.ndarray, action: np.ndarray, next_state: np.ndarray, reward: float,
-             combined_reward: float, action_log_prob: float, done: bool):
+    def push(self, state: np.ndarray, action: np.ndarray, next_state: np.ndarray, reward: float, action_log_prob: float, done: bool):
         """
         Add a new transition to the buffer with decay applied to existing transitions.
 
@@ -51,7 +49,6 @@ class ReplayBuffer:
         self.states *= self.momentum
         self.next_states *= self.momentum
         self.rewards *= self.momentum
-        self.combined_rewards *= self.momentum
         self.action_log_probs *= self.momentum
 
         # Add new transition
@@ -59,7 +56,6 @@ class ReplayBuffer:
         self.actions[self.pointer] = action
         self.next_states[self.pointer] = next_state
         self.rewards[self.pointer] = reward
-        self.combined_rewards[self.pointer] = combined_reward
         self.action_log_probs[self.pointer] = action_log_prob
         self.dones[self.pointer] = done
 
@@ -89,11 +85,10 @@ class ReplayBuffer:
         actions = torch.FloatTensor(self.actions[indices])
         next_states = torch.FloatTensor(self.next_states[indices])
         rewards = torch.FloatTensor(self.rewards[indices])
-        combined_rewards = torch.FloatTensor(self.combined_rewards[indices])
         action_log_probs = torch.FloatTensor(self.action_log_probs[indices])
         dones = torch.BoolTensor(self.dones[indices])
 
-        return states, actions, next_states, rewards, combined_rewards, action_log_probs, dones
+        return states, actions, next_states, rewards, action_log_probs, dones
 
     def dump(self):
         """
@@ -105,19 +100,17 @@ class ReplayBuffer:
                  next_states=self.next_states,
                  actions=self.actions,
                  rewards=self.rewards,
-                 combined_rewards=self.combined_rewards,
                  action_log_probs=self.action_log_probs,
                  dones=self.dones,
                  pointer=self.pointer,
                  size=self.size)
 
         # Delete arrays to free up memory
-        del self.states, self.next_states, self.actions, self.rewards, self.combined_rewards, self.action_log_probs, self.dones
+        del self.states, self.next_states, self.actions, self.rewards, self.action_log_probs, self.dones
         self.states = None
         self.next_states = None
         self.actions = None
         self.rewards = None
-        self.combined_rewards = None
         self.action_log_probs = None
         self.dones = None
         self.pointer = 0
@@ -138,7 +131,6 @@ class ReplayBuffer:
         self.next_states = data['next_states']
         self.actions = data['actions']
         self.rewards = data['rewards']
-        self.combined_rewards = data['combined_rewards']
         self.action_log_probs = data['action_log_probs']
         self.dones = data['dones']
         self.pointer = data['pointer']

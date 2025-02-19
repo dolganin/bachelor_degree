@@ -6,7 +6,6 @@ from base.trainer_base import TrainerRL
 from utilities.preprocessing import preprocess
 from server_consumer.broker_kafka import publish_data
 from utilities.video_logger import VideoLogger
-from ppo.ppo_agent import PPOAgent  # Обратите внимание: теперь используется PPOAgent без Forward Model
 from .replay_buffer import ReplayBuffer
 import cv2
 from base.agent_evaluator import AgentEvaluator
@@ -79,11 +78,11 @@ class PPOTrainer(TrainerRL):
                     next_state = np.zeros((3, self.resolution[0], self.resolution[1]), dtype=np.float32)
                 
                 # Записываем опыт в буфер (без использования intrinsic reward)
-                self.agent.append_memory(state, action_distribution, next_state, reward, reward, action_log_prob, done)
+                self.agent.append_memory(state, action_distribution, next_state, reward, action_log_prob, done)
                 global_step += 1
 
                 # Обучение агента с дополнительными диагностическими метриками
-                if global_step > self.agent.batch_size // 10 and len(self.agent.memory) >= self.agent.batch_size:
+                if global_step > self.agent.batch_size // 10 and len(self.agent.replay_buffer) >= self.agent.batch_size:
                     policy_loss, value_loss, diagnostics = self.agent.train_agent()
                     self.wandb_logger.log({
                         'Train policy loss': policy_loss,

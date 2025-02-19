@@ -147,12 +147,13 @@ class TrainerRL(ABC):
                     # forward_loss = np.array(loss_lst["forward_loss"]).mean()
                     policy_loss = np.array(loss_lst["policy_loss"]).mean()
                     value_loss = np.array(loss_lst["value_loss"]).mean()
-                    mean_loss = (forward_loss + policy_loss + value_loss) / 3
+                    #mean_loss = (forward_loss + policy_loss + value_loss) / 3
+                    mean_loss = (policy_loss + value_loss)/2
 
                     self.log_metrics(epoch, 
                                     mean_reward=test_scores.mean(), 
                                     std_reward=test_scores.std(),
-                                    # forward_loss=forward_loss,
+                                    #forward_loss=forward_loss,
                                     policy_loss=policy_loss,
                                     value_loss=value_loss,
                                     mean_loss=mean_loss

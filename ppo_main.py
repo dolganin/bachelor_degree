@@ -125,9 +125,9 @@ def main() -> None:
         print_debug_message(f"Error loading config: {e}", "red")
         return
     try:
-        (learning_rate_policy, learning_rate_value, batch_size, replay_memory_size,
+        (learning_rate_forward, learning_rate_policy, learning_rate_value, batch_size, replay_memory_size,
          discount_factor, train_epochs, frame_repeat, learning_steps_per_epoch, cfg_path, resolution,
-         test_episodes_per_epoch, weight_decay, entropy_coef, clip_epsilon, hidden_dim, channels,
+         test_episodes_per_epoch, weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels,
          patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim,
          ex_loss, window_size, evaluate_every, fps) = constants(config)
         config_parameters = {
@@ -182,7 +182,6 @@ def main() -> None:
             device=DEVICE,
             entropy_coef=entropy_coef,
             clip_epsilon=clip_epsilon,
-            hidden_dim=hidden_dim,
             screen_resolution=resolution,
             channels=channels,
             patch_size=patch_size,
@@ -190,8 +189,7 @@ def main() -> None:
             embedding_dim=embedding_dim,
             num_heads=num_heads,
             num_layers=num_layers,
-            mlp_dim=mlp_dim,
-            ex_loss=ex_loss
+            mlp_dim=mlp_dim
         )
         print_debug_message("Agent successfully initialized.", "green")
     except Exception as e:
