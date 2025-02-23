@@ -5,4 +5,3 @@ $KAFKA_HOME/bin/kafka-topics.sh --create \
     --partitions 3 \
     --replication-factor 1 \
     --config retention.ms=7200000
-

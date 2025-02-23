@@ -78,6 +78,7 @@ class PPOAgent(RLAgent):
         state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         mean, std = self.policy_net(state)
         std = torch.clamp(std, min=1e-6, max=1.0)
+        #print(mean, std)
         dist = Normal(mean, std)
         action = dist.sample()
         action_log_prob = dist.log_prob(action).sum(dim=-1)

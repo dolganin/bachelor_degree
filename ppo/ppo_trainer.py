@@ -42,7 +42,7 @@ class PPOTrainer(TrainerRL):
         total_reward = 0.0
 
         with trange(steps_per_epoch, desc=f"Epoch {episode}", unit="step") as t:
-            for _ in t:
+            for step in t:
                 raw_state = self.env.get_state().screen_buffer
                 state = preprocess(raw_state, resolution=self.resolution)
                 
@@ -80,6 +80,9 @@ class PPOTrainer(TrainerRL):
                 # Записываем опыт в буфер (без использования intrinsic reward)
                 self.agent.append_memory(state, action_distribution, next_state, reward, action_log_prob, done)
                 global_step += 1
+                if global_step >= 100:
+                    avg_reward = np.mean(episode_rewards)
+                    self.wandb_logger.log({'Average Train Reward (100 episodes)': avg_reward})
 
                 # Обучение агента с дополнительными диагностическими метриками
                 if global_step > self.agent.batch_size // 10 and len(self.agent.replay_buffer) >= self.agent.batch_size:
@@ -108,15 +111,13 @@ class PPOTrainer(TrainerRL):
                     self.env.new_episode()
 
                 t.set_postfix({
-                    "Reward": f"{total_reward:.2f}",
+                    "Reward": f"{reward:.2f}",
                     "Policy Loss": f"{np.mean(loss_dict['policy_loss']):.4f}",
                     "Value Loss": f"{np.mean(loss_dict['value_loss']):.4f}"
                 })
         
         # Логируем скользящее среднее награду за последние 100 эпизодов
-        if len(episode_rewards) >= 100:
-            avg_reward = np.mean(episode_rewards)
-            self.wandb_logger.log({'Average Train Reward (100 episodes)': avg_reward})
+
         
         average_policy_loss = np.mean(loss_dict['policy_loss']) if 'policy_loss' in loss_dict else 0.0
         average_value_loss = np.mean(loss_dict['value_loss']) if 'value_loss' in loss_dict else 0.0

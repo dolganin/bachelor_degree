@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 class ReplayBuffer:
-    def __init__(self, capacity: int = 10000, momentum: float = 0.995, state_size: tuple = (3, 120, 130), action_dim: int = 10):
+    def __init__(self, capacity: int = 10000, momentum: float = 0.995, state_size: tuple = (3, 120, 130), action_dim: int = 20):
         """
         Initialize the replay buffer with decay.
 

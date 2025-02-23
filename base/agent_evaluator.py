@@ -72,7 +72,7 @@ class AgentEvaluator:
         loss_norm = self.normalize(loss, self.losses)
 
         # Расчет интегрального показателя
-        score = (mean_reward_norm - std_reward_norm - loss_norm) / 3
+        score = (mean_reward_norm - loss_norm) / 2
 
         # Сравнение с текущим лучшим показателем и сохранение лучшего агента
         if score > self.best_score:
