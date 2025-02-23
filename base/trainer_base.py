@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from time import time
+import torch
 from tqdm import trange
 from utilities.preprocessing import preprocess
 from typing import List
@@ -32,51 +33,57 @@ class TrainerRL(ABC):
             num_episodes: Количество эпизодов для обучения.
         """
         pass
-
     def evaluate(self) -> np.ndarray:
         """
-        Оценка агента без обновления весов.
-
-        Args:
-            num_episodes: Количество эпизодов для оценки.
+        Оценка агента без обновления весов. Функция проходит по заданному количеству тестовых эпизодов,
+        собирает видеофреймы и итоговые награды.
+        
+        Returns:
+            np.ndarray: Массив итоговых наград по тестовым эпизодам.
         """
         test_scores = []
         for _ in trange(self.test_episodes_per_epoch, leave=False):
             self.env.new_episode()
             while not self.env.is_episode_finished():
-
                 raw_state = self.env.get_state().screen_buffer
                 state = preprocess(raw_state, resolution=self.resolution)
                 
                 # Логирование видеофрейма
                 temporal_state = np.array(raw_state, dtype=np.uint8)
                 if temporal_state.shape[-1] == 3:
-                    # Меняем порядок каналов с RGB на BGR, если необходимо
-                    temporal_state = temporal_state[..., ::-1]  # Меняем порядок на BGR
-
-                # Изменение размера изображения до 1280x720
+                    temporal_state = temporal_state[..., ::-1]  # Если нужно поменять порядок каналов
                 temporal_state = cv2.resize(temporal_state, (1280, 720), interpolation=cv2.INTER_LINEAR)
-                
-                #new_state = np.repeat(temporal_state[:, :, np.newaxis], 3, axis=2)
                 self.video_logger.add_frame(temporal_state)
                 
-                action_distribution, _ = self.agent.get_action(state)
-                action_distribution = Tensor(action_distribution) 
-                selected_action_idx = int(argmax(action_distribution).item())
+                # Выбор действия
+                action, _ = self.agent.get_action(state)
+                if self.actions is not None:
+                    # Если имеется список действий, выбираем индекс максимального значения
+                    action_tensor = torch.tensor(action)
+                    selected_action_idx = int(torch.argmax(action_tensor).item())
+                    selected_action = self.actions[selected_action_idx]
+                else:
+                    selected_action = action
 
-                self.env.make_action(self.actions[selected_action_idx], self.frame_repeat)
+                self.env.make_action(selected_action, self.frame_repeat)
                 
-
-                publish_data(array=temporal_state, epoch="Undefined", loss=float("NaN"), mean_reward=np.array(test_scores).mean(), mode="Test")
+                # Отправка фрейма (для логирования или визуализации)
+                publish_data(
+                    array=temporal_state,
+                    epoch="Undefined",
+                    loss=float("NaN"),
+                    mean_reward=0.0,
+                    mode="Test"
+                )
+            
             r = self.env.get_total_reward()
             test_scores.append(r)
-
-        test_scores = np.array(test_scores)
-        total_loss = self.agent.compute_total_loss()
         
-        self.agent.replay_buffer.dump()
-        self.avaluator.evaluate_and_save(self, test_scores.mean(), test_scores.std(), total_loss)
+        test_scores = np.array(test_scores)
+        self.avaluator.evaluate_and_save(self, test_scores.mean(), test_scores.std())
+        
         return test_scores
+
 
     @abstractmethod
     def save_model(self, filepath: str):
@@ -157,9 +164,7 @@ class TrainerRL(ABC):
                                     policy_loss=policy_loss,
                                     value_loss=value_loss,
                                     mean_loss=mean_loss
-                                    )
-                    
-                    self.agent.replay_buffer.load()
+                    )
                     
                 pbar.update(1)
 

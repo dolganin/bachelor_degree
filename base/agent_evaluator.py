@@ -48,7 +48,7 @@ class AgentEvaluator:
             return 0.5  # Среднее значение по умолчанию, если диапазон неизвестен
         return (value - min_val) / (max_val - min_val)
     
-    def evaluate_and_save(self, trainer, mean_reward, std_reward, loss):
+    def evaluate_and_save(self, trainer, mean_reward, std_reward):
         """
         Оценивает и сохраняет лучшие веса агента на основе заданных метрик.
 
@@ -64,22 +64,20 @@ class AgentEvaluator:
         # Обновляем деки для отслеживания скользящих min и max
         self.mean_rewards.append(mean_reward)
         self.std_rewards.append(std_reward)
-        self.losses.append(loss)
 
         # Нормализация метрик по текущим диапазонам
         mean_reward_norm = self.normalize(mean_reward, self.mean_rewards)
         std_reward_norm = self.normalize(std_reward, self.std_rewards)
-        loss_norm = self.normalize(loss, self.losses)
 
         # Расчет интегрального показателя
-        score = (mean_reward_norm - loss_norm) / 2
+        score = (mean_reward_norm - std_reward_norm) / (2 * std_reward_norm)
 
         # Сравнение с текущим лучшим показателем и сохранение лучшего агента
         if score > self.best_score:
             self.best_score = score
             self.best_agent_weights = trainer.save_model(path=trainer.model_savefile)  # Сохраняем веса агента
             print("New best ensemble saved with parameters:",
-                  f"Mean Reward: {round(mean_reward, 2)}, Std Reward: {round(std_reward, 2)}, Loss: {round(loss, 2)}")
+                  f"Mean Reward: {round(mean_reward, 2)}, Std Reward: {round(std_reward, 2)}")
             trainer.video_logger.save()  # Сохраняем видео сессии
         else:
             trainer.video_logger.clear()  # Очистка, если агент не улучшил показатель

@@ -6,7 +6,6 @@ from base.trainer_base import TrainerRL
 from utilities.preprocessing import preprocess
 from server_consumer.broker_kafka import publish_data
 from utilities.video_logger import VideoLogger
-from .replay_buffer import ReplayBuffer
 import cv2
 from base.agent_evaluator import AgentEvaluator
 
@@ -30,42 +29,39 @@ class PPOTrainer(TrainerRL):
         self.actions = actions
         self.test_episodes_per_epoch = test_episodes_per_epoch
         self.model_savefile = model_savefile
-        self.memory = ReplayBuffer(capacity=buffer_capacity, momentum=buffer_momentum)
         self.avaluator = agent_evaluator
 
     def train(self, episode: int, steps_per_epoch: int = 1000):
         loss_dict = {}
         self.env.new_episode()
         train_scores = []
-        episode_rewards = []  # Для расчёта скользящего среднего награды
-        global_step = 0
+        episode_rewards = []  # Для скользящего среднего награды за 100 эпизодов
         total_reward = 0.0
+        global_step = 0
+
+        # Собираем траекторию онлайн за эпоху
+        trajectories = {
+            'states': [],
+            'actions': [],
+            'rewards': [],
+            'log_probs': [],
+            'next_states': [],
+            'dones': []
+        }
 
         with trange(steps_per_epoch, desc=f"Epoch {episode}", unit="step") as t:
-            for step in t:
+            for _ in t:
                 raw_state = self.env.get_state().screen_buffer
                 state = preprocess(raw_state, resolution=self.resolution)
-                
-                temporal_state = np.array(raw_state, dtype=np.uint8)
-                if temporal_state.shape[-1] == 3:
-                    temporal_state = temporal_state[..., ::-1]
-                temporal_state = cv2.resize(temporal_state, (1280, 720), interpolation=cv2.INTER_LINEAR)
-                
-                publish_data(
-                    array=temporal_state, 
-                    epoch=episode, 
-                    loss=np.mean([loss_dict.get('policy_loss', [0.0]), loss_dict.get('value_loss', [0.0])]),
-                    mean_reward=np.mean(train_scores) if train_scores else 0.0, 
-                    mode="Train"
-                )
-                
-                action_distribution, action_log_prob = self.agent.get_action(state)
+
+                # Выбор действия
+                action, action_log_prob = self.agent.get_action(state)
                 if self.actions is not None:
-                    action_distribution = torch.Tensor(action_distribution)
-                    selected_action_idx = int(torch.argmax(action_distribution).item())
+                    action_tensor = torch.Tensor(action)
+                    selected_action_idx = int(torch.argmax(action_tensor).item())
                     selected_action = self.actions[selected_action_idx]
                 else:
-                    selected_action = action_distribution.detach().cpu().numpy()
+                    selected_action = action
 
                 reward = self.env.make_action(selected_action, self.frame_repeat)
                 done = self.env.is_episode_finished()
@@ -76,53 +72,61 @@ class PPOTrainer(TrainerRL):
                     next_state = preprocess(next_raw_state, resolution=self.resolution)
                 else:
                     next_state = np.zeros((3, self.resolution[0], self.resolution[1]), dtype=np.float32)
-                
-                # Записываем опыт в буфер (без использования intrinsic reward)
-                self.agent.append_memory(state, action_distribution, next_state, reward, action_log_prob, done)
-                global_step += 1
-                if global_step >= 100:
-                    avg_reward = np.mean(episode_rewards)
-                    self.wandb_logger.log({'Average Train Reward (100 episodes)': avg_reward})
 
-                # Обучение агента с дополнительными диагностическими метриками
-                if global_step > self.agent.batch_size // 10 and len(self.agent.replay_buffer) >= self.agent.batch_size:
-                    policy_loss, value_loss, diagnostics = self.agent.train_agent()
-                    self.wandb_logger.log({
-                        'Train policy loss': policy_loss,
-                        'Train value loss': value_loss,
-                        'Policy Entropy': diagnostics.get('entropy', 0.0),
-                        'Policy Grad Norm': diagnostics.get('policy_grad_norm', 0.0),
-                        'Value Grad Norm': diagnostics.get('value_grad_norm', 0.0),
-                        'Advantages Mean': diagnostics.get('advantages_mean', 0.0),
-                        'Advantages Std': diagnostics.get('advantages_std', 0.0),
-                        'Action Distribution Mean': diagnostics.get('action_distribution_mean', 0.0),
-                        'Action Distribution Std': diagnostics.get('action_distribution_std', 0.0)
-                    })
-                    loss_dict.setdefault('policy_loss', []).append(policy_loss)
-                    loss_dict.setdefault('value_loss', []).append(value_loss)
-                else:
-                    loss_dict.setdefault('policy_loss', []).append(0.0)
-                    loss_dict.setdefault('value_loss', []).append(0.0)
+                # Сохраняем траекторию
+                trajectories['states'].append(state)
+                trajectories['actions'].append(action)
+                trajectories['rewards'].append(reward)
+                trajectories['log_probs'].append(action_log_prob)
+                trajectories['next_states'].append(next_state)
+                trajectories['dones'].append(float(done))
+
+                global_step += 1
+                self.wandb_logger.log({'Reward': reward})
 
                 if done:
-                    total_episode_reward = self.env.get_total_reward()
-                    train_scores.append(total_episode_reward)
-                    episode_rewards.append(total_episode_reward)
+                    ep_reward = self.env.get_total_reward()
+                    self.wandb_logger.log({'Episode Reward': ep_reward})
+                    train_scores.append(ep_reward)
+                    episode_rewards.append(ep_reward)
                     self.env.new_episode()
 
-                t.set_postfix({
-                    "Reward": f"{reward:.2f}",
-                    "Policy Loss": f"{np.mean(loss_dict['policy_loss']):.4f}",
-                    "Value Loss": f"{np.mean(loss_dict['value_loss']):.4f}"
-                })
-        
-        # Логируем скользящее среднее награду за последние 100 эпизодов
+                t.set_postfix({"Reward": f"{reward:.2f}"})
 
-        
-        average_policy_loss = np.mean(loss_dict['policy_loss']) if 'policy_loss' in loss_dict else 0.0
-        average_value_loss = np.mean(loss_dict['value_loss']) if 'value_loss' in loss_dict else 0.0
-        
+            # Преобразуем списки в тензоры
+            states_tensor = torch.FloatTensor(np.array(trajectories['states']))
+            actions_tensor = torch.tensor(np.array(trajectories['actions']))
+            rewards_tensor = torch.FloatTensor(np.array(trajectories['rewards']))
+            log_probs_tensor = torch.cat(trajectories['log_probs'])
+            next_states_tensor = torch.FloatTensor(np.array(trajectories['next_states']))
+            dones_tensor = torch.FloatTensor(np.array(trajectories['dones']))
+
+            # Обновляем сеть с онлайн траекторией
+            policy_loss, value_loss, diagnostics = self.agent.train_agent(
+                states_tensor, actions_tensor, rewards_tensor, next_states_tensor, log_probs_tensor, dones_tensor
+            )
+            loss_dict.setdefault('policy_loss', []).append(policy_loss)
+            loss_dict.setdefault('value_loss', []).append(value_loss)
+
+            self.wandb_logger.log({
+                'Train policy loss': policy_loss,
+                'Train value loss': value_loss,
+                'Policy Entropy': diagnostics.get('entropy', 0.0),
+                'Policy Grad Norm': diagnostics.get('policy_grad_norm', 0.0),
+                'Value Grad Norm': diagnostics.get('value_grad_norm', 0.0),
+                'Advantages Mean': diagnostics.get('advantages_mean', 0.0),
+                'Advantages Std': diagnostics.get('advantages_std', 0.0),
+                'Action Distribution Mean': diagnostics.get('action_distribution_mean', 0.0),
+                'Action Distribution Std': diagnostics.get('action_distribution_std', 0.0)
+            })
+
+            if len(episode_rewards) >= 100:
+                avg_reward = np.mean(episode_rewards[-100:])
+                self.wandb_logger.log({'Average Train Reward (last 100 episodes)': avg_reward})
+
         return total_reward, loss_dict
+
+
     
     def save_model(self, path: str) -> None:
         torch.save({

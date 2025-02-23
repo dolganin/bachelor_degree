@@ -15,6 +15,8 @@ class PolicyNetwork(nn.Module):
     def forward(self, state: torch.Tensor):
         features = self.shared_transformer(state)  # (batch_size, embedding_dim)
         mean = self.fc_mean(features)  # (batch_size, action_dim)
-        log_std = self.fc_log_std.expand_as(mean)
+        batch_size = mean.size(0)
+        # Вместо expand_as используем repeat для создания нового тензора
+        log_std = self.fc_log_std.repeat(batch_size, 1)
         std = torch.exp(log_std)
         return mean, std

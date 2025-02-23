@@ -8,7 +8,6 @@ import torch.nn.functional as F
 from ppo.pnetwork import PolicyNetwork
 from ppo.vnetwork import ValueNetwork
 from ppo.shared_transformer import SharedTransformer
-from ppo.replay_buffer import ReplayBuffer
 from base.agent_base import RLAgent
 
 class PPOAgent(RLAgent):
@@ -71,27 +70,33 @@ class PPOAgent(RLAgent):
         self.policy_optimizer = Adam(self.policy_net.parameters(), lr=self.lr_policy)
         self.value_optimizer = Adam(self.value_net.parameters(), lr=self.lr_value)
         
-        # Инициализация Replay Buffer
-        self.replay_buffer = ReplayBuffer(capacity=self.memory_size)
         
     def get_action(self, state: np.ndarray):
         state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         mean, std = self.policy_net(state)
         std = torch.clamp(std, min=1e-6, max=1.0)
-        #print(mean, std)
         dist = Normal(mean, std)
         action = dist.sample()
         action_log_prob = dist.log_prob(action).sum(dim=-1)
         return action.detach().cpu().numpy()[0], action_log_prob.detach()
     
-    def train_agent(self):
-        if len(self.replay_buffer) < self.batch_size:
-            return 0.0, 0.0, {}
+    def train_agent(self, states: torch.Tensor, actions: torch.Tensor, rewards: torch.Tensor, 
+                    next_states: torch.Tensor, log_probs: torch.Tensor, dones: torch.Tensor):
+        """
+        Выполняет PPO-обновление на переданном батче данных.
 
-        # Получаем батч из памяти
-        states, actions, next_states, rewards, log_probs, dones = \
-            self.replay_buffer.sample(self.batch_size)
+        Args:
+            states (torch.Tensor): Тензор состояний (batch_size, ...).
+            actions (torch.Tensor): Тензор действий (batch_size, ...).
+            rewards (torch.Tensor): Тензор наград (batch_size,).
+            next_states (torch.Tensor): Тензор следующих состояний (batch_size, ...).
+            log_probs (torch.Tensor): Тензор логарифмов вероятностей (batch_size,).
+            dones (torch.Tensor): Тензор флагов завершения эпизода (batch_size,).
 
+        Returns:
+            tuple: (policy_loss, value_loss, diagnostics)
+        """
+        # Перенос данных на устройство
         states = states.to(self.device)
         actions = actions.to(self.device)
         next_states = next_states.to(self.device)
@@ -99,25 +104,17 @@ class PPOAgent(RLAgent):
         log_probs = log_probs.to(self.device)
         dones = dones.to(self.device)
 
+        # Вычисляем значения и returns через Value Network
         values = self.value_net(states).squeeze()
         next_values = self.value_net(next_states).squeeze()
-        advantages = (rewards + self.discount_factor * next_values * (1 - dones.float()) - values).detach()
         returns = rewards + self.discount_factor * next_values * (1 - dones.float())
+        advantages = returns - values
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        # Обновление Value Network
+        # --- Обновление сети ценности ---
         value_loss = F.smooth_l1_loss(values, returns)
-        self.value_optimizer.zero_grad()
-        value_loss.backward(retain_graph=True)
-        # Вычисляем норму градиентов для value_net
-        value_grad_norm = 0.0
-        for p in self.value_net.parameters():
-            if p.grad is not None:
-                value_grad_norm += p.grad.data.norm(2).item() ** 2
-        value_grad_norm = value_grad_norm ** 0.5
-        self.value_optimizer.step()
-
-        # Обновление Policy Network
-        self.policy_optimizer.zero_grad()
+        
+        # --- Обновление сети политики ---
         mean, std = self.policy_net(states)
         std = torch.clamp(std, min=1e-6, max=1.0)
         dist = Normal(mean, std)
@@ -130,14 +127,19 @@ class PPOAgent(RLAgent):
         surr2 = torch.clamp(ratio, 1.0 - self.clip_epsilon, 1.0 + self.clip_epsilon) * advantages
         policy_loss = -torch.min(surr1, surr2).mean() - self.entropy_coef * entropy
 
-        policy_loss.backward()
-        # Вычисляем норму градиентов для policy_net
-        policy_grad_norm = 0.0
-        for p in self.policy_net.parameters():
-            if p.grad is not None:
-                policy_grad_norm += p.grad.data.norm(2).item() ** 2
-        policy_grad_norm = policy_grad_norm ** 0.5
+        # Объединяем потери и делаем один backward
+        total_loss = policy_loss + value_loss
+
+        self.policy_optimizer.zero_grad()
+        self.value_optimizer.zero_grad()
+        total_loss.backward()
+
+        # Вычисляем нормы градиентов
+        policy_grad_norm = sum(p.grad.data.norm(2).item() ** 2 for p in self.policy_net.parameters() if p.grad is not None) ** 0.5
+        value_grad_norm = sum(p.grad.data.norm(2).item() ** 2 for p in self.value_net.parameters() if p.grad is not None) ** 0.5
+
         self.policy_optimizer.step()
+        self.value_optimizer.step()
 
         diagnostics = {
             'entropy': entropy.item(),
@@ -148,26 +150,12 @@ class PPOAgent(RLAgent):
             'action_distribution_mean': mean.mean().item(),
             'action_distribution_std': mean.std().item()
         }
-
+        
         return policy_loss.item(), value_loss.item(), diagnostics
 
-    
-    def append_memory(self, state: np.ndarray, action: int, next_state: np.ndarray, reward: float, action_log_prob: np.ndarray, done: bool):
-        self.replay_buffer.push(state=state, action=action, next_state=next_state, reward=reward, action_log_prob=action_log_prob, done=done)
+
+    def append_memory(self, state, action, reward, next_state, done):
+        pass
 
     def update_target_net(self):
         pass
-
-
-    def compute_total_loss(self):
-        """
-        Вычисляет общий лосс, складывая потери от Policy Network, Value Network и Forward Model.
-
-        Returns:
-            float: Общий лосс.
-        """
-        # Обучение агента и получение потерь
-        policy_loss, value_loss, _ = self.train_agent()
-        # Общий лосс
-        total_loss = policy_loss + value_loss
-        return total_loss
