@@ -75,8 +75,17 @@ services:
     ports:
       - "5000:5000"
 
-volumes:
-  kafka_data:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: dith_frontend:1.0
+    ports:
+      - "3000:80"  # наружу отдаём как 3000
+    depends_on:
+      - flask_server
+    networks:
+      - mynetwork
 
 networks:
   mynetwork:

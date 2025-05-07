@@ -1,0 +1,122 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  min-height: 100%;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #2a0000, #5a0000);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover;
+  color: #ffe5e5;
+}
+
+body {
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Основной контейнер */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem;
+  min-height: 100vh;
+}
+
+/* Заголовок */
+.app-header {
+  background-color: rgba(64, 0, 0, 0.3);
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(255, 0, 0, 0.2);
+  margin: 1rem;
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+p {
+  font-size: 1.2rem;
+  margin-top: 0;
+}
+
+/* Кнопки комнат */
+button {
+  margin: 0.5rem;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff0f0;
+  background-color: #990000;
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 10px #990000;
+  cursor: pointer;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+button:hover {
+  background-color: #cc0000;
+  box-shadow: 0 0 20px #ff4444;
+}
+
+button:active {
+  background-color: #770000;
+  box-shadow: 0 0 5px #660000;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 600px) {
+  .app-header {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  p {
+    font-size: 1rem;
+  }
+
+  .app-container {
+    padding: 0.5rem;
+  }
+
+  button {
+    width: 100%;
+    font-size: 1rem;
+  }
+}
+
+/* Стилизация скроллбара */
+body::-webkit-scrollbar,
+html::-webkit-scrollbar {
+  width: 8px;
+}
+
+body::-webkit-scrollbar-track,
+html::-webkit-scrollbar-track {
+  background: rgba(100, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+body::-webkit-scrollbar-thumb,
+html::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #990000, #ff5555);
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+body,
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #ff5555 rgba(100, 0, 0, 0.2);
+}
