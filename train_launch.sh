@@ -8,7 +8,7 @@ VENV_DIR="$SCRIPT_DIR/bd_env"
 
 # Check if the virtual environment directory exists
 if [ ! -d "$VENV_DIR" ]; then
-    echo "Creating virtual environment in $VENV_DIR..."
+    echo "Создание виртуального окружения в $VENV_DIR..."
     python3 -m venv "$VENV_DIR"
 fi
 
@@ -18,7 +18,7 @@ source "$VENV_DIR/bin/activate"
 # Check if reqs/nn_requirements.txt exists
 REQ_FILE="$SCRIPT_DIR/reqs/nn_requirements.txt"
 if [ ! -f "$REQ_FILE" ]; then
-    echo "Error: $REQ_FILE not found."
+    echo "Ошибка: не найден $REQ_FILE."
     deactivate
     exit 1
 fi
@@ -36,20 +36,20 @@ fi
 
 # Compare hashes
 if [ "$CURRENT_HASH" != "$STORED_HASH" ]; then
-    echo "Installing dependencies from $REQ_FILE..."
+    echo "Установка зависимостей из $REQ_FILE..."
     pip install --upgrade pip
-    pip install -r "$REQ_FILE" || { echo "Error installing dependencies."; deactivate; exit 1; }
+    pip install -r "$REQ_FILE" || { echo "Ошибка при установке зависимостей."; deactivate; exit 1; }
     echo "$CURRENT_HASH" > "$STORED_HASH_FILE"
 else
-    echo "Packages already installed and requirements have not changed."
+    echo "Зависимости уже установлены и не изменились."
 fi
 
-# Check if DoomITH repository is already cloned
+# DoomITH
 DOOMITH_DIR="$SCRIPT_DIR/DoomITH"
 if [ ! -d "$DOOMITH_DIR/.git" ]; then
-    echo "Cloning DoomITH repository..."
+    echo "Клонируем DoomITH..."
     git clone https://github.com/dolganin/DoomITH.git "$DOOMITH_DIR"
-    echo "Building and installing DoomITH..."
+    echo "Собираем и устанавливаем DoomITH..."
     cd "$DOOMITH_DIR" || exit
     mkdir -p build
     cd build || exit
@@ -57,19 +57,27 @@ if [ ! -d "$DOOMITH_DIR/.git" ]; then
     make -j$(nproc)
     cd ..
     pip install .
-    cd ..
+    cd "$SCRIPT_DIR"
 fi
 
-# Check if weights directory exists, create if not
+# coNNquest
+CONNQUEST_DIR="$SCRIPT_DIR/coNNquest"
+if [ ! -d "$CONNQUEST_DIR/.git" ]; then
+    echo "Клонируем coNNquest..."
+    git clone https://github.com/dolganin/coNNquest.git "$CONNQUEST_DIR"
+    pip install -e "$CONNQUEST_DIR"
+fi
+
+# Create weights directory if missing
 WEIGHTS_DIR="$SCRIPT_DIR/weights"
 if [ ! -d "$WEIGHTS_DIR" ]; then
-    echo "Creating weights directory at $WEIGHTS_DIR..."
+    echo "Создаём директорию весов: $WEIGHTS_DIR..."
     mkdir -p "$WEIGHTS_DIR"
 fi
 
-# Run the training script with all passed arguments
-echo "Starting training..."
+# Run the training script
+echo "Запуск обучения..."
 python ppo_main.py "$@"
 
-# Deactivate the virtual environment after the script finishes
+# Deactivate venv
 deactivate

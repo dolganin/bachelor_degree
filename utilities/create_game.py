@@ -2,8 +2,10 @@ import vizdoom as vzd
 import os
 from termcolor import colored
 from colorama import init
+from connquest import ConNquestEnv
+from vizdoom import Button
 
-# Инициализация colorama для поддержки цветного вывода
+# Инициализация цветного вывода
 init(autoreset=True)
 
 def print_debug_message(message, color="cyan"):
@@ -13,8 +15,8 @@ def print_debug_message(message, color="cyan"):
     print(f"{colored(line.center(80), color)}\n")
 
 def create_simple_game(config_file_path):
-    print_debug_message("Initializing Doom...", color="green")
-    
+    print_debug_message("Инициализация классической среды Doom...", color="green")
+
     game = vzd.DoomGame()
     game.load_config(config_file_path)
     game.set_mode(vzd.Mode.PLAYER)
@@ -22,7 +24,16 @@ def create_simple_game(config_file_path):
     game.set_screen_format(vzd.ScreenFormat.RGB24)
     game.set_screen_resolution(vzd.ScreenResolution.RES_640X480)
     game.init()
-    
-    print_debug_message("Doom initialized.", color="green")
 
+    print_debug_message("Классическая среда Doom инициализирована.", color="green")
     return game
+
+def create_connquest_env(config_file_path):
+    print_debug_message("Инициализация среды ConNquest...", color="green")
+
+    env = ConNquestEnv(config_file_path)
+    obs = env.reset()
+    env.spawn_wave()
+
+    print_debug_message("Среда ConNquest успешно инициализирована.", color="green")
+    return env
