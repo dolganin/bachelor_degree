@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/logo.png" alt="D.I.T.H. Logo" width="300"/>
+  <img src="images/logo.png" alt="D.I.T.H. Logo" width="1000"/>
 </p>
 
 # D.I.T.H.
