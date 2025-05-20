@@ -47,7 +47,7 @@ class TrainerRL(ABC):
             while not self.env.is_episode_finished():
                 raw_state = self.env.get_state().screen_buffer
                 state = preprocess(raw_state, resolution=self.resolution)
-                
+                print(raw_state.shape)
                 # Логирование видеофрейма
                 temporal_state = np.array(raw_state, dtype=np.uint8)
                 if temporal_state.shape[-1] == 3:

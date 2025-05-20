@@ -2,7 +2,7 @@ import vizdoom as vzd
 import os
 from termcolor import colored
 from colorama import init
-from connquest import ConNquestEnv
+from coNNquest.connquest import ConNquestEnv
 from vizdoom import Button
 
 # Инициализация цветного вывода
@@ -28,10 +28,10 @@ def create_simple_game(config_file_path):
     print_debug_message("Классическая среда Doom инициализирована.", color="green")
     return game
 
-def create_connquest_env(config_file_path):
+def create_connquest_env(cfg):
     print_debug_message("Инициализация среды ConNquest...", color="green")
 
-    env = ConNquestEnv(config_file_path)
+    env = ConNquestEnv(cfg_path=cfg)
     obs = env.reset()
     env.spawn_wave()
 

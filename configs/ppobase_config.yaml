@@ -31,5 +31,3 @@ ppo_parameters:
 env_parameters:
   resolution: [120, 130]             # Размер экрана (высота и ширина)
   fps: 20                            # Число кадров в секунду
-
-doom_cfg_path: "deathmatch.cfg"  # Путь к файлу конфигурации Doom

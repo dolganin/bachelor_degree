@@ -1,7 +1,5 @@
 from termcolor import colored
 from colorama import init
-from connquest import ConNquestEnv
-from vizdoom import Button
 from ppo.ppo_agent import PPOAgent
 from ppo.ppo_trainer import PPOTrainer
 from base.agent_evaluator import AgentEvaluator
@@ -132,7 +130,7 @@ def main():
 
     try:
         (learning_rate_forward, learning_rate_policy, learning_rate_value, batch_size, replay_memory_size,
-         discount_factor, train_epochs, frame_repeat, learning_steps_per_epoch, cfg_path, resolution,
+         discount_factor, train_epochs, frame_repeat, learning_steps_per_epoch, resolution,
          test_episodes_per_epoch, weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels,
          patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim,
          ex_loss, window_size, evaluate_every, fps) = constants(config)
@@ -163,7 +161,7 @@ def main():
     print_debug_message(f"WandB инициализирован: {runname}", "green")
 
     try:
-        env = create_connquest_env(cfg_path)
+        env = create_connquest_env("coNNquest/configs/conquest.yaml")
         n = env.game.get_available_buttons_size()
         actions = [list(a) for a in product([0, 1], repeat=n)]
         print_debug_message(f"Среда ConNquest загружена. Кнопок: {n}", "green")
@@ -231,12 +229,12 @@ def main():
         return
 
     print_debug_message("Старт обучения...", "yellow")
-    try:
-        trainer.run(epochs=train_epochs, evaluate_every=evaluate_every)
-        print_debug_message("Обучение завершено.", "green")
-    except Exception as e:
-        trainer.save_model(weights)
-        print_debug_message(f"Ошибка обучения: {e}", "red")
+    #try:
+    trainer.run(epochs=train_epochs, evaluate_every=evaluate_every)
+    #     print_debug_message("Обучение завершено.", "green")
+    # except Exception as e:
+    #     trainer.save_model(weights)
+    #     print_debug_message(f"Ошибка обучения: {e}", "red")
 
 if __name__ == "__main__":
     main()

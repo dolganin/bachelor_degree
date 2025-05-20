@@ -53,13 +53,11 @@ def constants(yml: dict = None) -> List:
         resolution = yml["env_parameters"]["resolution"]
         fps = yml["env_parameters"]["fps"]
 
-        cfg_path = yml["doom_cfg_path"]
-
     else:
         raise Exception("Path to .yaml is None")
 
     return  (learning_rate_forward, learning_rate_policy, learning_rate_value, batch_size, replay_memory_size, discount_factor, train_epochs,
-            frame_repeat, learning_steps_per_epoch, cfg_path, resolution, test_episodes_per_epoch,
+            frame_repeat, learning_steps_per_epoch, resolution, test_episodes_per_epoch,
             weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
             patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, ex_loss, 
             window_size, evaluate_every, fps)

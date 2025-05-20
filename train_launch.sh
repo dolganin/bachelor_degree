@@ -65,7 +65,6 @@ CONNQUEST_DIR="$SCRIPT_DIR/coNNquest"
 if [ ! -d "$CONNQUEST_DIR/.git" ]; then
     echo "Клонируем coNNquest..."
     git clone https://github.com/dolganin/coNNquest.git "$CONNQUEST_DIR"
-    pip install -e "$CONNQUEST_DIR"
 fi
 
 # Create weights directory if missing
