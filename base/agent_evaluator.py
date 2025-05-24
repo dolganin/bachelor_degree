@@ -12,7 +12,7 @@ class AgentEvaluator:
         self.mean_rewards.append(mean_reward)
         self.std_rewards.append(std_reward)
 
-        if mean_reward > self.best_score:
+        if mean_reward >= self.best_score:
             self.best_score = mean_reward
             trainer.save_model(trainer.model_savefile)
             print(f"Сохранена новая лучшая модель — Средняя награда: {mean_reward:.2f}, Отклонение: {std_reward:.2f}")

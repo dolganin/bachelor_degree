@@ -40,36 +40,41 @@ class TrainerRL(ABC):
         n_envs = self.env.n_envs
         rewards = [0.0 for _ in range(n_envs)]
         active = [True] * n_envs
-
+    
+        pbar = tqdm(total=n_envs, desc="[EVAL] Валидация", unit="env", leave=True)
+    
         while any(active):
             batch_states = [preprocess(o, resolution=self.resolution) for o in obs]
             actions, _ = zip(*[self.agent.get_action(s) for s in batch_states])
-
+    
             selected = list(actions)  # Просто берем действия из агента без преобразований
-
+    
             obs, step_rewards, dones, infos = self.env.step(selected)
-
+    
             for i in range(n_envs):
                 if active[i]:
                     rewards[i] += step_rewards[i]
-
+    
                     if log_video or send_frames:
                         frame = np.array(obs[i], dtype=np.uint8)
                         if frame.shape[-1] == 3:
                             frame = frame[..., ::-1]
                         frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_LINEAR)
-
+    
                         if log_video:
                             self.video_logger.add_frame(frame)
                         if send_frames:
                             publish_data(array=frame, epoch="Validation", loss=float("NaN"),
-                                        mean_reward=0.0, mode="Test")
-
+                                         mean_reward=0.0, mode="Test")
+    
                     if dones[i]:
                         print(f"[EVAL] Среда {i}: эпизод завершён, награда = {rewards[i]:.2f}")
                         test_scores.append(rewards[i])
                         active[i] = False
-
+                        pbar.update(1)
+    
+        pbar.close()
+    
         test_scores = np.array(test_scores)
         avg = test_scores.mean()
         std = test_scores.std()

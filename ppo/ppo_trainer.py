@@ -48,7 +48,6 @@ class PPOTrainer(TrainerRL):
             batch_states = [preprocess(o, resolution=self.resolution) for o in obs]
             out = [self.agent.get_action(s) for s in batch_states]
             actions, logps = zip(*out)
-            print(actions)
 
             selected = list(actions)  # берем бинарные вектора действий без преобразований
 

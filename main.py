@@ -88,7 +88,7 @@ def make_env():
 
 
 def main():
-    DEVICE = 'cuda:0' if is_available() else 'cpu'
+    DEVICE = 'cuda:1' if is_available() else 'cpu'
     print_debug_message(f"Устройство: {DEVICE}", "green")
 
     parser = ArgumentParser(description='Скрипт дипломного проекта')
