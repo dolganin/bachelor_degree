@@ -228,6 +228,7 @@ def main():
             agent_evaluator=evaluator,
             model_savefile=weights,
             ppo_epochs=epoch
+            n_envs=n_envs
         )
         print_debug_message("Trainer успешно инициализирован.", "green")
         if os.path.isfile(weights):
