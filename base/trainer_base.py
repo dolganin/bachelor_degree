@@ -88,8 +88,6 @@ class TrainerRL(ABC):
         self.avaluator.evaluate_and_save(self, test_scores.mean(), test_scores.std())
         return test_scores
 
-
-
     @abstractmethod
     def save_model(self, filepath: str):
         """

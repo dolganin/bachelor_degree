@@ -13,7 +13,8 @@ from tqdm import tqdm
 class PPOTrainer(TrainerRL):
     def __init__(self, env, agent: Module, video_logger: VideoLogger=None, wandb_logger=None,  
                  device: str = "cpu", resolution: tuple = (30, 45), frame_repeat: int = 45, actions: list = None,  
-                 model_savefile: str = None, agent_evaluator: AgentEvaluator = None, ppo_epochs: int = 5, n_envs: int = 8):
+                 model_savefile: str = None, agent_evaluator: AgentEvaluator = None, ppo_epochs: int = 5, n_envs: int = 8,
+                 test_episodes_per_epoch: int = 120):
         super(PPOTrainer, self).__init__()
         self.env = env
         self.agent = agent
@@ -29,6 +30,7 @@ class PPOTrainer(TrainerRL):
         self.avaluator = agent_evaluator
         self.ppo_epochs = ppo_epochs
         self.n_envs = n_envs
+        self.test_episodes_per_epoch = test_episodes_per_epoch
 
     def train(self, total_steps: int, batch_size: int = 64):
         recent_episode_rewards = deque(maxlen=100)
@@ -87,6 +89,8 @@ class PPOTrainer(TrainerRL):
 
         pbar.close()
 
+        print("[TRAIN] Rollout собран, начинается обновление весов PPO...")
+
         S  = torch.FloatTensor(np.array(trajectories['states']))
         A  = torch.tensor(np.array(trajectories['actions']))
         R  = torch.FloatTensor(np.array(trajectories['rewards']))
@@ -96,6 +100,7 @@ class PPOTrainer(TrainerRL):
 
         idxs = np.arange(S.size(0))
         for epoch in range(self.ppo_epochs):
+            print(f"[TRAIN] PPO эпоха {epoch+1}/{self.ppo_epochs}")
             np.random.shuffle(idxs)
             for start in range(0, len(idxs), batch_size):
                 mb = idxs[start:start+batch_size]
@@ -106,6 +111,10 @@ class PPOTrainer(TrainerRL):
                 p_loss, v_loss, diag = self.agent.train_agent(**batch)
                 loss_dict.setdefault('policy_loss', []).append(p_loss)
                 loss_dict.setdefault('value_loss', []).append(v_loss)
+
+                print(f"  └─ обновление [{start:>5}/{len(idxs)}] → "
+                    f"policy_loss: {p_loss:.4f}, value_loss: {v_loss:.4f}")
+
                 self.wandb_logger.log({
                     'Train policy loss': p_loss,
                     'Train value loss': v_loss,
@@ -113,6 +122,7 @@ class PPOTrainer(TrainerRL):
                     'Advantages Mean': diag.get('advantages_mean', 0.0)
                 })
 
+        print("[TRAIN] Обновление PPO завершено.")
         return total_reward, loss_dict
     
     def save_model(self, path: str) -> None:
