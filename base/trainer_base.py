@@ -34,13 +34,14 @@ class TrainerRL(ABC):
             num_episodes: Количество эпизодов для обучения.
         """
         pass
-    def evaluate(self, log_video: bool = True, send_frames: bool = False, max_step: int = 2000) -> np.ndarray:
+    def evaluate(self, log_video: bool = True, send_frames: bool = False, max_step: int = 300) -> np.ndarray:
         print("[EVAL] Валидация агента в среде 0...")
     
         # Полный сброс карты и статистик
         self.env.reset_waves()              # сбросить wave = 1
         obs = self.env.reset()              # сбрасывает карту, убивает врагов, чистит статистику
         self.env.spawn_wave()              # запускаем первую волну
+        self.env.spawn_wave()
     
         reward = 0.0
         done = False

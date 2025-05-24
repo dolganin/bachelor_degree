@@ -30,11 +30,9 @@ def constants(yml: dict = None) -> List:
         validate_fold = yml["learning_parameters"]["validate_fold"]
         frame_repeat = yml["learning_parameters"]["frame_repeat"]
         weight_decay = yml["learning_parameters"]["weight_decay"]
-        test_episodes_per_epoch = yml["learning_parameters"]["test_episodes_per_epoch"]
         hidden_dim = yml["learning_parameters"]["hidden_dim"]
         channels = yml["learning_parameters"]["channels"]
         window_size = yml["learning_parameters"]["window_size"]
-        evaluate_every = yml["learning_parameters"]["evaluate_every"]
         
         embedding_dim = yml["ppo_parameters"]["embedding_dim"]
         num_heads = yml["ppo_parameters"]["num_heads"]
@@ -42,8 +40,6 @@ def constants(yml: dict = None) -> List:
         mlp_dim = yml["ppo_parameters"]["mlp_dim"]
         patch_size = yml["ppo_parameters"]["patch_size"]
         dropout_rate = yml["ppo_parameters"]["dropout_rate"]
-        ex_loss = yml["ppo_parameters"]["ex_loss"]
-        lambda_intrinsic = yml["ppo_parameters"]["lambda_intrinsic"]
         entropy_coef = yml["ppo_parameters"]["entropy_coef"]
         clip_epsilon = yml["ppo_parameters"]["clip_epsiolon"]
         epoch = yml["ppo_parameters"]["epoch"]
@@ -57,7 +53,7 @@ def constants(yml: dict = None) -> List:
         raise Exception("Path to .yaml is None")
 
     return  (learning_rate_policy, learning_rate_value, batch_size, discount_factor,
-            frame_repeat, learning_steps, resolution, test_episodes_per_epoch,
-            weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
-            patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, ex_loss, 
-            window_size, evaluate_every, fps, validate_fold, epoch, num_envs)
+            frame_repeat, learning_steps, resolution,
+            weight_decay, entropy_coef, clip_epsilon, hidden_dim, channels, 
+            patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, 
+            window_size, fps, validate_fold, epoch, num_envs)

@@ -138,10 +138,10 @@ def main():
 
     try:
         (learning_rate_policy, learning_rate_value, batch_size, discount_factor,
-            frame_repeat, learning_steps, resolution, test_episodes_per_epoch,
-            weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
-            patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, ex_loss, 
-            window_size, evaluate_every, fps, validate_fold, epoch, num_envs) = constants(config)
+            frame_repeat, learning_steps, resolution,
+            weight_decay, entropy_coef, clip_epsilon, hidden_dim, channels, 
+            patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, 
+            window_size, fps, validate_fold, epoch, num_envs) = constants(config)
         config_parameters = {
             "Learning Rate Policy": learning_rate_policy,
             "Learning Rate Value": learning_rate_value,

@@ -9,7 +9,7 @@ import os
 import contextlib
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 # Kafka producer configuration
