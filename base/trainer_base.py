@@ -33,32 +33,28 @@ class TrainerRL(ABC):
             num_episodes: Количество эпизодов для обучения.
         """
         pass
-    def evaluate(self) -> np.ndarray:
+    def evaluate(self, log_video: bool = False, send_frames: bool = False) -> np.ndarray:
         """
-        Оценка агента без обновления весов. Функция проходит по заданному количеству тестовых эпизодов,
-        собирает видеофреймы и итоговые награды.
-        
+        Оценка агента без обновления весов. Функция проходит по test_episodes_per_epoch эпизодов
+        и возвращает массив финальных наград.
+
+        Args:
+            log_video (bool): Если True, логирует видеофреймы.
+            send_frames (bool): Если True, отправляет фреймы через Kafka.
+
         Returns:
-            np.ndarray: Массив итоговых наград по тестовым эпизодам.
+            np.ndarray: Массив итоговых наград по эпизодам.
         """
         test_scores = []
-        for _ in trange(self.test_episodes_per_epoch, leave=False):
+        for _ in trange(self.test_episodes_per_epoch, leave=False, desc="Eval"):
             self.env.new_episode()
             while not self.env.is_episode_finished():
                 raw_state = self.env.get_state().screen_buffer
                 state = preprocess(raw_state, resolution=self.resolution)
-                print(raw_state.shape)
-                # Логирование видеофрейма
-                temporal_state = np.array(raw_state, dtype=np.uint8)
-                if temporal_state.shape[-1] == 3:
-                    temporal_state = temporal_state[..., ::-1]  # Если нужно поменять порядок каналов
-                temporal_state = cv2.resize(temporal_state, (1280, 720), interpolation=cv2.INTER_LINEAR)
-                self.video_logger.add_frame(temporal_state)
-                
+
                 # Выбор действия
                 action, _ = self.agent.get_action(state)
                 if self.actions is not None:
-                    # Если имеется список действий, выбираем индекс максимального значения
                     action_tensor = torch.tensor(action)
                     selected_action_idx = int(torch.argmax(action_tensor).item())
                     selected_action = self.actions[selected_action_idx]
@@ -66,23 +62,32 @@ class TrainerRL(ABC):
                     selected_action = action
 
                 self.env.make_action(selected_action, self.frame_repeat)
-                
-                # Отправка фрейма (для логирования или визуализации)
-                publish_data(
-                    array=temporal_state,
-                    epoch="Undefined",
-                    loss=float("NaN"),
-                    mean_reward=0.0,
-                    mode="Test"
-                )
-            
+
+                if log_video or send_frames:
+                    temporal_state = np.array(raw_state, dtype=np.uint8)
+                    if temporal_state.shape[-1] == 3:
+                        temporal_state = temporal_state[..., ::-1]
+                    temporal_state = cv2.resize(temporal_state, (1280, 720), interpolation=cv2.INTER_LINEAR)
+
+                    if log_video:
+                        self.video_logger.add_frame(temporal_state)
+
+                    if send_frames:
+                        publish_data(
+                            array=temporal_state,
+                            epoch="Validation",
+                            loss=float("NaN"),
+                            mean_reward=0.0,
+                            mode="Test"
+                        )
+
             r = self.env.get_total_reward()
             test_scores.append(r)
-        
+
         test_scores = np.array(test_scores)
         self.avaluator.evaluate_and_save(self, test_scores.mean(), test_scores.std())
-        
         return test_scores
+
 
 
     @abstractmethod
@@ -106,8 +111,7 @@ class TrainerRL(ABC):
         pass
 
     def log_metrics(self, epoch: int = 0, mean_reward: float = float("NaN"), std_reward: float = float("NaN"), \
-                    mean_loss: float = None, forward_loss: float = None, \
-                        policy_loss: float = None, value_loss: float = None) -> None:
+                    mean_loss: float = None, policy_loss: float = None, value_loss: float = None) -> None:
         """
         Логгирование метрик обучения, таких как награды и потери.
 
@@ -117,7 +121,6 @@ class TrainerRL(ABC):
             loss: Потери модели (если есть).
         """
         self.wandb_logger.log({
-            # 'Mean Forward loss': forward_loss,
             'Mean Policy loss': policy_loss,
             'Mean Value loss': value_loss,
             'Test score mean': mean_reward,
@@ -126,46 +129,52 @@ class TrainerRL(ABC):
             'Epoch': epoch
         })
 
-        print("Metrics of model was logged to tensorboard!")
+        print("Metrics of model was logged to wandb!")
 
-    def run(self, epochs: int = 0, evaluate_every: int = 100) -> None:
+    def run(self, total_steps: int = 500000, validate_every_split: int = 5, batch_size: int = 64) -> None:
         """
-        Полный процесс обучения с периодической оценкой.
+        Запуск обучения с валидацией каждые (total_steps / validate_every_split) шагов.
         """
-        max_reward = 0.0
+        steps_per_val = total_steps // validate_every_split
+        steps_completed = 0
+        epoch = 0
 
-        with trange(epochs, desc="Training", unit="epoch", bar_format='{l_bar}{bar:20}{r_bar}{bar:-20b}') as pbar:
-            for epoch in pbar:
-                test_scores = []
+        with trange(total_steps, desc="Training", unit="step", bar_format='{l_bar}{bar:20}{r_bar}{bar:-20b}') as pbar:
+            while steps_completed < total_steps:
+                train_steps = min(steps_per_val, total_steps - steps_completed)
 
-                # Запуск тренировки на одном эпизоде
-                reward, loss_lst = self.train(epoch, steps_per_epoch=self.steps_per_epoch)
+                # Обучение
+                reward, loss_lst = self.train(total_steps=steps_per_val, batch_size=batch_size)
                 self.total_rewards.append(reward)
 
-                # Обновление прогресс-бара с временем начала
-                pbar.set_postfix(epoch=epoch + 1, reward=reward)
+                policy_loss = np.array(loss_lst["policy_loss"]).mean()
+                value_loss = np.array(loss_lst["value_loss"]).mean()
+                mean_loss = (policy_loss + value_loss) / 2
 
-                # Периодическая оценка
-                if epoch % evaluate_every == 0:
-                    print(Fore.YELLOW + "\nTesting..." + Style.RESET_ALL)
-                    test_scores = self.evaluate()
-                    test_scores = np.array(test_scores)
+                # Валидация
+                print(Fore.YELLOW + "\nValidating..." + Style.RESET_ALL)
+                test_scores = self.evaluate()
+                avg_reward = test_scores.mean()
+                std_reward = test_scores.std()
 
-                    # forward_loss = np.array(loss_lst["forward_loss"]).mean()
-                    policy_loss = np.array(loss_lst["policy_loss"]).mean()
-                    value_loss = np.array(loss_lst["value_loss"]).mean()
-                    #mean_loss = (forward_loss + policy_loss + value_loss) / 3
-                    mean_loss = (policy_loss + value_loss)/2
+                self.log_metrics(
+                    epoch=epoch,
+                    mean_reward=avg_reward,
+                    std_reward=std_reward,
+                    policy_loss=policy_loss,
+                    value_loss=value_loss,
+                    mean_loss=mean_loss
+                )
 
-                    self.log_metrics(epoch, 
-                                    mean_reward=test_scores.mean(), 
-                                    std_reward=test_scores.std(),
-                                    #forward_loss=forward_loss,
-                                    policy_loss=policy_loss,
-                                    value_loss=value_loss,
-                                    mean_loss=mean_loss
-                    )
-                    
-                pbar.update(1)
+                # Обновление и сохранение лучшего
+                self.avaluator.evaluate_and_save(
+                    trainer=self,
+                    mean_reward=avg_reward,
+                    std_reward=std_reward
+                )
+
+                steps_completed += train_steps
+                pbar.update(train_steps)
+                epoch += 1
 
         self.env.close()

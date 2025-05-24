@@ -76,7 +76,7 @@ fi
 
 # Run the training script
 echo "Запуск обучения..."
-python ppo_main.py "$@"
+python3 main.py "$@"
 
 # Deactivate venv
 deactivate

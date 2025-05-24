@@ -13,7 +13,6 @@ from base.agent_base import RLAgent
 class PPOAgent(RLAgent):
     def __init__(self, 
                  action_size: int,
-                 memory_size: int,
                  batch_size: int,
                  discount_factor: float,
                  lr_value: float,
@@ -35,7 +34,6 @@ class PPOAgent(RLAgent):
         self.clip_epsilon = clip_epsilon
         self.action_size = action_size
         self.device = device
-        self.memory_size = memory_size
         self.batch_size = batch_size
         self.lr_value = lr_value
         self.lr_policy = lr_policy
