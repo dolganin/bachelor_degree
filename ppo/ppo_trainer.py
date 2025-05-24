@@ -12,7 +12,7 @@ from collections import deque
 class PPOTrainer(TrainerRL):
     def __init__(self, env, agent: Module, video_logger: VideoLogger=None, wandb_logger=None,  
                  device: str = "cpu", resolution: tuple = (30, 45), frame_repeat: int = 45, actions: list = None,  
-                 model_savefile: str = None, agent_evaluator: AgentEvaluator = None, ppo_epochs: int = 5):
+                 model_savefile: str = None, agent_evaluator: AgentEvaluator = None, ppo_epochs: int = 5, n_envs: int = 8):
         super(PPOTrainer, self).__init__()
         self.env = env
         self.agent = agent
@@ -27,6 +27,7 @@ class PPOTrainer(TrainerRL):
         self.model_savefile = model_savefile
         self.avaluator = agent_evaluator
         self.ppo_epochs = ppo_epochs
+        self.n_envs = n_envs
 
     def train(self, total_steps: int, batch_size: int = 64):
         # Для скользящего окна средней награды за 100 эпизодов
