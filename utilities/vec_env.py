@@ -8,7 +8,10 @@ def _worker(remote, parent_remote, env_fn_pickle):
     env = env_fn()
     try:
         while True:
-            cmd, data = remote.recv()
+            try:
+                cmd, data = remote.recv()
+            except EOFError:
+                break
             if cmd == 'step':
                 o, r, d, info = env.step(data)
                 if d:
@@ -33,7 +36,7 @@ class SubprocVecEnv:
         self.processes = []
         for work_remote, remote, fn in zip(self.work_remotes, self.remotes, env_fns):
             p = mp.Process(target=_worker, args=(work_remote, remote, cloudpickle.dumps(fn)))
-            p.daemon = True
+            p.daemon = False  # НЕ демоны, чтобы join корректно работал
             p.start()
             work_remote.close()
             self.processes.append(p)
@@ -52,6 +55,9 @@ class SubprocVecEnv:
 
     def close(self):
         for remote in self.remotes:
-            remote.send(('close', None))
+            try:
+                remote.send(('close', None))
+            except Exception:
+                pass
         for p in self.processes:
             p.join()
