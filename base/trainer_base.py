@@ -47,7 +47,7 @@ class TrainerRL(ABC):
         """
         test_scores = []
         for _ in trange(self.test_episodes_per_epoch, leave=False, desc="Eval"):
-            self.env.new_episode()
+            self.env.reset()
             while not self.env.is_episode_finished():
                 raw_state = self.env.get_state().screen_buffer
                 state = preprocess(raw_state, resolution=self.resolution)
