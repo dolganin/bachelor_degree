@@ -34,59 +34,50 @@ class TrainerRL(ABC):
         """
         pass
     def evaluate(self, log_video: bool = False, send_frames: bool = False) -> np.ndarray:
-        """
-        Оценка агента без обновления весов. Функция проходит по test_episodes_per_epoch эпизодов
-        и возвращает массив финальных наград.
-
-        Args:
-            log_video (bool): Если True, логирует видеофреймы.
-            send_frames (bool): Если True, отправляет фреймы через Kafka.
-
-        Returns:
-            np.ndarray: Массив итоговых наград по эпизодам.
-        """
         test_scores = []
-        for _ in trange(self.test_episodes_per_epoch, leave=False, desc="Eval"):
-            self.env.reset()
-            while not self.env.is_episode_finished():
-                raw_state = self.env.get_state().screen_buffer
-                state = preprocess(raw_state, resolution=self.resolution)
+        obs = self.env.reset()
+        n_envs = self.env.n_envs
+        rewards = [0.0 for _ in range(n_envs)]
+        active = [True] * n_envs  # отслеживаем, какие среды ещё не завершили эпизод
 
-                # Выбор действия
-                action, _ = self.agent.get_action(state)
-                if self.actions is not None:
-                    action_tensor = torch.tensor(action)
-                    selected_action_idx = int(torch.argmax(action_tensor).item())
-                    selected_action = self.actions[selected_action_idx]
-                else:
-                    selected_action = action
+        while any(active):
+            batch_states = [preprocess(o, resolution=self.resolution) for o in obs]
+            actions, _ = zip(*[self.agent.get_action(s) for s in batch_states])
 
-                self.env.make_action(selected_action, self.frame_repeat)
+            if self.actions:
+                selected = []
+                for a in actions:
+                    idx = int(torch.argmax(torch.tensor(a)).item())
+                    selected.append(self.actions[idx])
+            else:
+                selected = actions
 
-                if log_video or send_frames:
-                    temporal_state = np.array(raw_state, dtype=np.uint8)
-                    if temporal_state.shape[-1] == 3:
-                        temporal_state = temporal_state[..., ::-1]
-                    temporal_state = cv2.resize(temporal_state, (1280, 720), interpolation=cv2.INTER_LINEAR)
+            obs, step_rewards, dones, infos = self.env.step(selected)
 
-                    if log_video:
-                        self.video_logger.add_frame(temporal_state)
+            for i in range(n_envs):
+                if active[i]:
+                    rewards[i] += step_rewards[i]
 
-                    if send_frames:
-                        publish_data(
-                            array=temporal_state,
-                            epoch="Validation",
-                            loss=float("NaN"),
-                            mean_reward=0.0,
-                            mode="Test"
-                        )
+                    if log_video or send_frames:
+                        frame = np.array(obs[i], dtype=np.uint8)
+                        if frame.shape[-1] == 3:
+                            frame = frame[..., ::-1]
+                        frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_LINEAR)
 
-            r = self.env.get_total_reward()
-            test_scores.append(r)
+                        if log_video:
+                            self.video_logger.add_frame(frame)
+                        if send_frames:
+                            publish_data(array=frame, epoch="Validation", loss=float("NaN"),
+                                        mean_reward=0.0, mode="Test")
+
+                    if dones[i]:
+                        test_scores.append(rewards[i])
+                        active[i] = False
 
         test_scores = np.array(test_scores)
         self.avaluator.evaluate_and_save(self, test_scores.mean(), test_scores.std())
         return test_scores
+
 
     @abstractmethod
     def save_model(self, filepath: str):
