@@ -12,11 +12,14 @@ class AgentEvaluator:
         self.mean_rewards.append(mean_reward)
         self.std_rewards.append(std_reward)
 
-        # Критерий: просто максимальная средняя награда
         if mean_reward > self.best_score:
             self.best_score = mean_reward
             trainer.save_model(trainer.model_savefile)
-            print(f"New best model saved — Mean Reward: {mean_reward:.2f}, Std: {std_reward:.2f}")
-            trainer.video_logger.save()
+            print(f"Сохранена новая лучшая модель — Средняя награда: {mean_reward:.2f}, Отклонение: {std_reward:.2f}")
+            if trainer.video_logger:
+                trainer.video_logger.save()
+                print("Видео сохранено.")
         else:
-            trainer.video_logger.clear()
+            if trainer.video_logger:
+                trainer.video_logger.clear()
+                print("Видео очищено.")
