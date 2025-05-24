@@ -1,5 +1,6 @@
 from termcolor import colored
 from colorama import init
+import torch
 from ppo.ppo_agent import PPOAgent
 from ppo.ppo_trainer import PPOTrainer
 from base.agent_evaluator import AgentEvaluator
@@ -239,12 +240,14 @@ def main():
         return
 
     print_debug_message("Старт обучения...", "yellow")
-    #try:
-    trainer.run(total_steps=learning_steps, validate_every_split=validate_fold, batch_size=batch_size)
-    #     print_debug_message("Обучение завершено.", "green")
-    # except Exception as e:
-    #     trainer.save_model(weights)
-    #     print_debug_message(f"Ошибка обучения: {e}", "red")
+    try:
+        trainer.run(total_steps=learning_steps, validate_every_split=validate_fold, batch_size=batch_size)
+        print_debug_message("Обучение завершено.", "green")
+    except Exception as e:
+         trainer.save_model(weights)
+         print_debug_message(f"Ошибка обучения: {e}", "red")
+    torch.cuda.empty_cache()
+    return
 
 if __name__ == "__main__":
     main()
