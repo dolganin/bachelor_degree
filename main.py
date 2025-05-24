@@ -6,6 +6,7 @@ from base.agent_evaluator import AgentEvaluator
 from utilities.video_logger import VideoLogger
 from utilities.yaml_reader import YAMLParser, constants
 from utilities.create_game import create_connquest_env
+from utilities.vec_env import SubprocVecEnv
 
 import warnings
 import os
@@ -14,7 +15,6 @@ from itertools import product
 from torch.cuda import is_available
 from datetime import datetime
 import signal
-from time import sleep
 import wandb
 
 init(autoreset=True)
@@ -79,6 +79,10 @@ def get_latest_model_path(directory="weights"):
     latest_model_file = max(valid_models, key=lambda x: x[0])[1]
     return os.path.join(directory, latest_model_file)
 
+def make_env():
+    return create_connquest_env("coNNquest/configs/conquest.yaml")
+
+
 def main():
     DEVICE = 'cuda:0' if is_available() else 'cpu'
     print_debug_message(f"Устройство: {DEVICE}", "green")
@@ -133,7 +137,7 @@ def main():
             frame_repeat, learning_steps, resolution, test_episodes_per_epoch,
             weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
             patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, ex_loss, 
-            window_size, evaluate_every, fps, validate_fold, epoch) = constants(config)
+            window_size, evaluate_every, fps, validate_fold, epoch, num_envs) = constants(config)
         config_parameters = {
             "Learning Rate Policy": learning_rate_policy,
             "Learning Rate Value": learning_rate_value,
@@ -164,9 +168,18 @@ def main():
         env = create_connquest_env("coNNquest/configs/conquest.yaml")
         n = env.game.get_available_buttons_size()
         actions = [list(a) for a in product([0, 1], repeat=n)]
-        print_debug_message(f"Среда ConNquest загружена. Кнопок: {n}", "green")
+        env.close()
+        print_debug_message(f"Среда ConNquest загружена. Кнопок: {n}. Пробую создать векторную среду", "green")
     except Exception as e:
         print_debug_message(f"Ошибка инициализации среды: {e}", "red")
+        return
+    try:
+        env_fns = [make_env for _ in range(num_envs)]
+        # 5. Создаём векторную среду
+        envs = SubprocVecEnv(env_fns)
+        print_debug_message(f"Вектор сред загружен в размере: {num_envs}")
+    except Exception as e:
+        print_debug_message(f"Ошибка инициализации вектора: {e}")
         return
 
     try:

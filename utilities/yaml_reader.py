@@ -51,6 +51,7 @@ def constants(yml: dict = None) -> List:
 
         resolution = yml["env_parameters"]["resolution"]
         fps = yml["env_parameters"]["fps"]
+        num_envs = yml["env_parameters"]["num_envs"]
 
     else:
         raise Exception("Path to .yaml is None")
@@ -59,4 +60,4 @@ def constants(yml: dict = None) -> List:
             frame_repeat, learning_steps, resolution, test_episodes_per_epoch,
             weight_decay, lambda_intrinsic, entropy_coef, clip_epsilon, hidden_dim, channels, 
             patch_size, dropout_rate, embedding_dim, num_heads, num_layers, mlp_dim, ex_loss, 
-            window_size, evaluate_every, fps, validate_fold, epoch)
+            window_size, evaluate_every, fps, validate_fold, epoch, num_envs)

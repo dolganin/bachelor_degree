@@ -7,6 +7,7 @@ from utilities.preprocessing import preprocess
 from server_consumer.broker_kafka import publish_data
 from utilities.video_logger import VideoLogger
 from base.agent_evaluator import AgentEvaluator
+from collections import deque
 
 class PPOTrainer(TrainerRL):
     def __init__(self, env, agent: Module, video_logger: VideoLogger=None, wandb_logger=None,  
@@ -28,110 +29,98 @@ class PPOTrainer(TrainerRL):
         self.ppo_epochs = ppo_epochs
 
     def train(self, total_steps: int, batch_size: int = 64):
+        # Для скользящего окна средней награды за 100 эпизодов
+        recent_episode_rewards = deque(maxlen=100)
+
         loss_dict = {}
-        self.env.new_episode()
-        episode_rewards = []
+        obs = self.env.reset()
         total_reward = 0.0
         step = 0
 
+        # Буфер rollout-а
         trajectories = {
-            'states': [],
-            'actions': [],
-            'rewards': [],
-            'log_probs': [],
-            'next_states': [],
-            'dones': []
+            'states': [], 'actions': [], 'rewards': [],
+            'log_probs': [], 'next_states': [], 'dones': []
         }
 
+        # Собираем rollout
         while step < total_steps:
-            raw_state = self.env.get_state().screen_buffer
-            state = preprocess(raw_state, resolution=self.resolution)
+            # предобработка состояний
+            batch_states = [preprocess(o, resolution=self.resolution) for o in obs]
+            # получаем батч действий и их лог-вероятности
+            out = [self.agent.get_action(s) for s in batch_states]
+            actions, logps = zip(*out)
 
-            action, action_log_prob = self.agent.get_action(state)
-            if self.actions is not None:
-                action_tensor = torch.Tensor(action)
-                selected_action = self.actions[int(torch.argmax(action_tensor).item())]
-            else:
-                selected_action = action
+            # приводим индексы к списку команд
+            selected = []
+            for a in actions:
+                if self.actions:
+                    idx = int(torch.argmax(torch.Tensor(a)).item())
+                    selected.append(self.actions[idx])
+                else:
+                    selected.append(a)
 
-            reward = self.env.make_action(selected_action, self.frame_repeat)
-            done = self.env.is_episode_finished()
-            total_reward += reward
+            # делаем шаг во всех средах
+            next_obs, rewards, dones, infos = self.env.step(selected)
 
-            if not done:
-                next_raw_state = self.env.get_state().screen_buffer
-                next_state = preprocess(next_raw_state, resolution=self.resolution)
-            else:
-                next_state = np.zeros((3, self.resolution[0], self.resolution[1]), dtype=np.float32)
+            # сохраняем переходы и считаем эпизодические награды
+            for i in range(self.n_envs):
+                trajectories['states'].append(batch_states[i])
+                trajectories['actions'].append(actions[i])
+                trajectories['rewards'].append(rewards[i])
+                trajectories['log_probs'].append(logps[i])
 
-            trajectories['states'].append(state)
-            trajectories['actions'].append(action)
-            trajectories['rewards'].append(reward)
-            trajectories['log_probs'].append(action_log_prob)
-            trajectories['next_states'].append(next_state)
-            trajectories['dones'].append(float(done))
+                if not dones[i]:
+                    ns = preprocess(next_obs[i], resolution=self.resolution)
+                else:
+                    ns = np.zeros((3, *self.resolution), dtype=np.float32)
+                trajectories['next_states'].append(ns)
+                trajectories['dones'].append(float(dones[i]))
 
-            self.wandb_logger.log({'Reward': reward})
+                total_reward += rewards[i]
 
-            if done:
-                ep_reward = self.env.get_total_reward()
-                self.wandb_logger.log({'Episode Reward': ep_reward})
-                episode_rewards.append(ep_reward)
-                self.env.new_episode()
+                # если эпизод закончился — логируем его награду
+                if dones[i]:
+                    ep_reward = infos[i].get('episode_reward', None)
+                    # если в info нет, можно считать сумму последних trajectories['rewards'] или делать reset в env
+                    recent_episode_rewards.append(ep_reward)
+                    # логируем скользящую среднюю
+                    if len(recent_episode_rewards) == 100:
+                        avg100 = sum(recent_episode_rewards) / 100.0
+                        self.wandb_logger.log({'AvgRewardLast100': avg100})
 
-            step += 1
+            obs = next_obs
+            step += self.n_envs
 
-        # Преобразуем все в тензоры
-        states = torch.FloatTensor(np.array(trajectories['states']))
-        actions = torch.tensor(np.array(trajectories['actions']))
-        rewards = torch.FloatTensor(np.array(trajectories['rewards']))
-        next_states = torch.FloatTensor(np.array(trajectories['next_states']))
-        dones = torch.FloatTensor(np.array(trajectories['dones']))
-        log_probs = torch.cat(trajectories['log_probs'])
+        # конвертация rollout-буфера в тензоры
+        S  = torch.FloatTensor(np.array(trajectories['states']))
+        A  = torch.tensor(np.array(trajectories['actions']))
+        R  = torch.FloatTensor(np.array(trajectories['rewards']))
+        NS = torch.FloatTensor(np.array(trajectories['next_states']))
+        D  = torch.FloatTensor(np.array(trajectories['dones']))
+        LP = torch.cat(trajectories['log_probs'])
 
-        dataset_size = states.size(0)
-        indices = np.arange(dataset_size)
-
-        for epoch in range(self.ppo_epochs):
-            np.random.shuffle(indices)
-            for start in range(0, dataset_size, minibatch_size):
-                end = start + minibatch_size
-                mb_idx = indices[start:end]
-
+        # PPO-эпохи
+        idxs = np.arange(S.size(0))
+        for _ in range(self.ppo_epochs):
+            np.random.shuffle(idxs)
+            for start in range(0, len(idxs), batch_size):
+                mb = idxs[start:start+batch_size]
                 batch = {
-                    'states': states[mb_idx],
-                    'actions': actions[mb_idx],
-                    'rewards': rewards[mb_idx],
-                    'next_states': next_states[mb_idx],
-                    'dones': dones[mb_idx],
-                    'log_probs': log_probs[mb_idx]
+                    'states': S[mb], 'actions': A[mb], 'rewards': R[mb],
+                    'next_states': NS[mb], 'dones': D[mb], 'log_probs': LP[mb]
                 }
-
-                policy_loss, value_loss, diagnostics = self.agent.train_agent(**batch)
-
-                loss_dict.setdefault('policy_loss', []).append(policy_loss)
-                loss_dict.setdefault('value_loss', []).append(value_loss)
-
+                p_loss, v_loss, diag = self.agent.train_agent(**batch)
+                loss_dict.setdefault('policy_loss', []).append(p_loss)
+                loss_dict.setdefault('value_loss', []).append(v_loss)
                 self.wandb_logger.log({
-                    'Train policy loss': policy_loss,
-                    'Train value loss': value_loss,
-                    'Policy Entropy': diagnostics.get('entropy', 0.0),
-                    'Policy Grad Norm': diagnostics.get('policy_grad_norm', 0.0),
-                    'Value Grad Norm': diagnostics.get('value_grad_norm', 0.0),
-                    'Advantages Mean': diagnostics.get('advantages_mean', 0.0),
-                    'Advantages Std': diagnostics.get('advantages_std', 0.0),
-                    'Action Distribution Mean': diagnostics.get('action_distribution_mean', 0.0),
-                    'Action Distribution Std': diagnostics.get('action_distribution_std', 0.0)
+                    'Train policy loss': p_loss,
+                    'Train value loss':   v_loss,
+                    'Policy Entropy':     diag.get('entropy', 0.0),
+                    'Advantages Mean':    diag.get('advantages_mean', 0.0)
                 })
 
-        if len(episode_rewards) >= 100:
-            avg_reward = np.mean(episode_rewards[-100:])
-            self.wandb_logger.log({'Average Train Reward (last 100 episodes)': avg_reward})
-
         return total_reward, loss_dict
-
-
-
     
     def save_model(self, path: str) -> None:
         torch.save({

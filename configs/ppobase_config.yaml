@@ -30,3 +30,4 @@ ppo_parameters:
 env_parameters:
   resolution: [120, 130]             # Размер экрана (высота и ширина)
   fps: 20                            # Число кадров в секунду
+  num_envs: 8
