@@ -55,6 +55,3 @@ class SubprocVecEnv:
             remote.send(('close', None))
         for p in self.processes:
             p.join()
-    
-    def new_episeode(self):
-        
