@@ -12,6 +12,7 @@ def _worker(remote, parent_remote, env_fn_pickle):
                 cmd, data = remote.recv()
             except EOFError:
                 break
+
             if cmd == 'step':
                 o, r, d, info = env.step(data)
                 if d:
@@ -19,11 +20,21 @@ def _worker(remote, parent_remote, env_fn_pickle):
                 remote.send((o, r, d, info))
             elif cmd == 'reset':
                 remote.send(env.reset())
+            elif cmd == 'spawn_wave':
+                env.spawn_wave()
+                remote.send(None)
+            elif cmd == 'reset_stats':
+                env.reset_stats()
+                remote.send(None)
+            elif cmd == 'reset_waves':
+                env.reset_waves()
+                remote.send(None)
             elif cmd == 'close':
                 remote.close()
                 break
     except KeyboardInterrupt:
         pass
+
 
 class SubprocVecEnv:
     """
@@ -36,7 +47,7 @@ class SubprocVecEnv:
         self.processes = []
         for work_remote, remote, fn in zip(self.work_remotes, self.remotes, env_fns):
             p = mp.Process(target=_worker, args=(work_remote, remote, cloudpickle.dumps(fn)))
-            p.daemon = False  # НЕ демоны, чтобы join корректно работал
+            p.daemon = False
             p.start()
             work_remote.close()
             self.processes.append(p)
@@ -52,6 +63,24 @@ class SubprocVecEnv:
         results = [remote.recv() for remote in self.remotes]
         obs, rews, dones, infos = zip(*results)
         return list(obs), list(rews), list(dones), list(infos)
+
+    def spawn_wave(self):
+        for remote in self.remotes:
+            remote.send(('spawn_wave', None))
+        for remote in self.remotes:
+            remote.recv()
+
+    def reset_stats(self):
+        for remote in self.remotes:
+            remote.send(('reset_stats', None))
+        for remote in self.remotes:
+            remote.recv()
+
+    def reset_waves(self):
+        for remote in self.remotes:
+            remote.send(('reset_waves', None))
+        for remote in self.remotes:
+            remote.recv()
 
     def close(self):
         for remote in self.remotes:

@@ -8,9 +8,8 @@ class AgentEvaluator:
         self.mean_rewards = deque(maxlen=window_size)
         self.std_rewards = deque(maxlen=window_size)
 
-    def evaluate_and_save(self, trainer, mean_reward, std_reward):
+    def evaluate_and_save(self, trainer, mean_reward, std_reward: float = 0.0):
         self.mean_rewards.append(mean_reward)
-        self.std_rewards.append(std_reward)
 
         if mean_reward >= self.best_score:
             self.best_score = mean_reward

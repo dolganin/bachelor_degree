@@ -9,6 +9,7 @@ from server_consumer.broker_kafka import publish_data
 import cv2
 from torch import argmax, Tensor
 from colorama import Fore, Style
+from tqdm import trange
 
 
 class TrainerRL(ABC):
@@ -33,55 +34,65 @@ class TrainerRL(ABC):
             num_episodes: Количество эпизодов для обучения.
         """
         pass
-    def evaluate(self, log_video: bool = False, send_frames: bool = False) -> np.ndarray:
-        print("[EVAL] Начало валидации агента...")
-        test_scores = []
-        obs = self.env.reset()
-        n_envs = self.env.n_envs
-        rewards = [0.0 for _ in range(n_envs)]
-        active = [True] * n_envs
+    def evaluate(self, log_video: bool = True, send_frames: bool = False, max_step: int = 2000) -> np.ndarray:
+        print("[EVAL] Валидация агента в среде 0...")
     
-        pbar = tqdm(total=n_envs, desc="[EVAL] Валидация", unit="env", leave=True)
+        # Полный сброс карты и статистик
+        self.env.reset_waves()              # сбросить wave = 1
+        obs = self.env.reset()              # сбрасывает карту, убивает врагов, чистит статистику
+        self.env.spawn_wave()              # запускаем первую волну
     
-        while any(active):
-            batch_states = [preprocess(o, resolution=self.resolution) for o in obs]
-            actions, _ = zip(*[self.agent.get_action(s) for s in batch_states])
+        reward = 0.0
+        done = False
+        rewards = []
     
-            selected = list(actions)  # Просто берем действия из агента без преобразований
+        pbar = trange(max_step, desc="[EVAL] Шаги", unit="step", leave=True)
     
-            obs, step_rewards, dones, infos = self.env.step(selected)
+        for step in pbar:
+            if done:
+                break
     
-            for i in range(n_envs):
-                if active[i]:
-                    rewards[i] += step_rewards[i]
+            state = preprocess(obs[0], resolution=self.resolution)
+            action, _ = self.agent.get_action(state)
     
-                    if log_video or send_frames:
-                        frame = np.array(obs[i], dtype=np.uint8)
-                        if frame.shape[-1] == 3:
-                            frame = frame[..., ::-1]
-                        frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_LINEAR)
+            obs, step_rewards, dones, infos = self.env.step(
+                [action.tolist()] + [[0] * self.agent.action_size] * (self.env.n_envs - 1)
+            )
     
-                        if log_video:
-                            self.video_logger.add_frame(frame)
-                        if send_frames:
-                            publish_data(array=frame, epoch="Validation", loss=float("NaN"),
-                                         mean_reward=0.0, mode="Test")
+            step_reward = float(step_rewards[0])
+            reward += step_reward
+            rewards.append(step_reward)
     
-                    if dones[i]:
-                        print(f"[EVAL] Среда {i}: эпизод завершён, награда = {rewards[i]:.2f}")
-                        test_scores.append(rewards[i])
-                        active[i] = False
-                        pbar.update(1)
+            if log_video or send_frames:
+                frame = np.array(obs[0], dtype=np.uint8)
+    
+                if frame.ndim == 3 and frame.shape[0] == 3:
+                    frame = np.transpose(frame, (1, 2, 0))  # (C, H, W) → (H, W, C)
+                if frame.shape[-1] == 3:
+                    frame = frame[..., ::-1]  # BGR → RGB
+    
+                frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_LINEAR)
+    
+                if log_video:
+                    self.video_logger.add_frame(frame)
+                if send_frames:
+                    publish_data(
+                        array=frame,
+                        epoch="Validation",
+                        loss=float("NaN"),
+                        mean_reward=0.0,
+                        mode="Test"
+                    )
+    
+            done = dones[0]
     
         pbar.close()
+        rewards = np.array(rewards)
     
-        test_scores = np.array(test_scores)
-        avg = test_scores.mean()
-        std = test_scores.std()
-        print(f"[EVAL] Валидация завершена. Средняя награда: {avg:.2f}, std: {std:.2f}")
-        self.avaluator.evaluate_and_save(self, avg, std)
-        return test_scores
-
+        print(f"[EVAL] Эпизод завершён. Награда: {np.mean(rewards):.2f}")
+        self.avaluator.evaluate_and_save(self, np.mean(rewards), np.std(rewards))
+        return np.array([reward])
+        
     @abstractmethod
     def save_model(self, filepath: str):
         """

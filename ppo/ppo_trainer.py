@@ -35,6 +35,7 @@ class PPOTrainer(TrainerRL):
 
         loss_dict = {}
         obs = self.env.reset()
+        self.env.spawn_wave()
         total_reward = 0.0
         step = 0
 
