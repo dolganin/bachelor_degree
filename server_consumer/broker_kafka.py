@@ -6,7 +6,7 @@ import cv2
 import logging
 
 # Configure logging
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Kafka producer configuration
