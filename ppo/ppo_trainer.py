@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-from tqdm import trange
 from torch.nn import Module
 from base.trainer_base import TrainerRL
 from utilities.preprocessing import preprocess
@@ -12,9 +11,9 @@ from tqdm import tqdm
 
 class PPOTrainer(TrainerRL):
     def __init__(self, env, agent: Module, video_logger: VideoLogger=None, wandb_logger=None,  
-                 device: str = "cpu", resolution: tuple = (30, 45), frame_repeat: int = 45, actions: list = None,  
-                 model_savefile: str = None, agent_evaluator: AgentEvaluator = None, ppo_epochs: int = 5, n_envs: int = 8,
-                 test_episodes_per_epoch: int = 120):
+                 device: str = "cpu", resolution: tuple = (30, 45), frame_repeat: int = 45,  
+                 model_savefile: str = None, agent_evaluator: AgentEvaluator = None, ppo_epochs: int = 5, 
+                 n_envs: int = 8, test_episodes_per_epoch: int = 120):
         super(PPOTrainer, self).__init__()
         self.env = env
         self.agent = agent
@@ -25,7 +24,6 @@ class PPOTrainer(TrainerRL):
         self.device = device
         self.resolution = resolution
         self.frame_repeat = frame_repeat
-        self.actions = actions
         self.model_savefile = model_savefile
         self.avaluator = agent_evaluator
         self.ppo_epochs = ppo_epochs
@@ -51,13 +49,7 @@ class PPOTrainer(TrainerRL):
             out = [self.agent.get_action(s) for s in batch_states]
             actions, logps = zip(*out)
 
-            selected = []
-            for a in actions:
-                if self.actions:
-                    idx = int(torch.argmax(torch.Tensor(a)).item())
-                    selected.append(self.actions[idx])
-                else:
-                    selected.append(a)
+            selected = list(actions)  # берем бинарные вектора действий без преобразований
 
             next_obs, rewards, dones, infos = self.env.step(selected)
 
@@ -113,7 +105,7 @@ class PPOTrainer(TrainerRL):
                 loss_dict.setdefault('value_loss', []).append(v_loss)
 
                 print(f"  └─ обновление [{start:>5}/{len(idxs)}] → "
-                    f"policy_loss: {p_loss:.4f}, value_loss: {v_loss:.4f}")
+                      f"policy_loss: {p_loss:.4f}, value_loss: {v_loss:.4f}")
 
                 self.wandb_logger.log({
                     'Train policy loss': p_loss,
@@ -124,14 +116,14 @@ class PPOTrainer(TrainerRL):
 
         print("[TRAIN] Обновление PPO завершено.")
         return total_reward, loss_dict
-    
+
     def save_model(self, path: str) -> None:
         torch.save({
             'policy_net_state_dict': self.agent.policy_net.state_dict(),
             'value_net_state_dict': self.agent.value_net.state_dict()
         }, f"{path}.pth")
         print(f"Models saved to {path}.pth")
-    
+
     def load_model(self, path: str) -> None:
         checkpoint = torch.load(f"{path}.pth", map_location=self.device)
         self.agent.policy_net.load_state_dict(checkpoint['policy_net_state_dict'])

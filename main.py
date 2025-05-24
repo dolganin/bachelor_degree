@@ -167,7 +167,6 @@ def main():
     try:
         env = create_connquest_env("coNNquest/configs/conquest.yaml")
         n = env.game.get_available_buttons_size()
-        actions = [list(a) for a in product([0, 1], repeat=n)]
         env.close()
         print_debug_message(f"Среда ConNquest загружена. Кнопок: {n}. Пробую создать векторную среду", "green")
     except Exception as e:
@@ -223,7 +222,6 @@ def main():
             device=DEVICE,
             resolution=resolution,
             frame_repeat=frame_repeat,
-            actions=actions,
             video_logger=vlogger,
             agent_evaluator=evaluator,
             model_savefile=weights,

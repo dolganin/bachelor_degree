@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-from torch.distributions import Normal
+from torch.distributions import Bernoulli
 import numpy as np
 import torch.nn.functional as F
 
@@ -71,12 +71,15 @@ class PPOAgent(RLAgent):
         
     def get_action(self, state: np.ndarray):
         state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-        mean, std = self.policy_net(state)
-        std = torch.clamp(std, min=1e-6, max=1.0)
-        dist = Normal(mean, std)
-        action = dist.sample()
-        action_log_prob = dist.log_prob(action).sum(dim=-1)
-        return action.detach().cpu().numpy()[0], action_log_prob.detach()
+        self.policy_net.eval()
+        with torch.no_grad():
+            logits = self.policy_net(state)  # (1, action_size)
+            probs = torch.sigmoid(logits)
+            dist = Bernoulli(probs)
+            action = dist.sample()
+            action_log_prob = dist.log_prob(action).sum(dim=-1)
+        self.policy_net.train()
+        return action.cpu().numpy()[0], action_log_prob.cpu()
     
     def train_agent(self, states: torch.Tensor, actions: torch.Tensor, rewards: torch.Tensor, 
                     next_states: torch.Tensor, log_probs: torch.Tensor, dones: torch.Tensor):
@@ -85,7 +88,7 @@ class PPOAgent(RLAgent):
 
         Args:
             states (torch.Tensor): Тензор состояний (batch_size, ...).
-            actions (torch.Tensor): Тензор действий (batch_size, ...).
+            actions (torch.Tensor): Тензор действий (batch_size, action_size), бинарный.
             rewards (torch.Tensor): Тензор наград (batch_size,).
             next_states (torch.Tensor): Тензор следующих состояний (batch_size, ...).
             log_probs (torch.Tensor): Тензор логарифмов вероятностей (batch_size,).
@@ -102,22 +105,25 @@ class PPOAgent(RLAgent):
         log_probs = log_probs.to(self.device)
         dones = dones.to(self.device)
 
-        # Вычисляем значения и returns через Value Network
+        # Значения и returns через Value Network
         values = self.value_net(states).squeeze()
         next_values = self.value_net(next_states).squeeze()
         returns = rewards + self.discount_factor * next_values * (1 - dones.float())
         advantages = returns - values
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        # --- Обновление сети ценности ---
+        # Обновление Value Network
         value_loss = F.smooth_l1_loss(values, returns)
         
-        # --- Обновление сети политики ---
-        mean, std = self.policy_net(states)
-        std = torch.clamp(std, min=1e-6, max=1.0)
-        dist = Normal(mean, std)
+        # Обновление Policy Network
+        logits = self.policy_net(states)
+        probs = torch.sigmoid(logits)
+        dist = Bernoulli(probs)
+
+        # Убедимся, что actions бинарные и имеют форму (batch, action_size)
         if actions.dim() == 1:
-            actions = actions.unsqueeze(-1).expand_as(mean)
+            actions = actions.unsqueeze(-1).expand_as(probs)
+
         new_log_probs = dist.log_prob(actions).sum(dim=-1)
         entropy = dist.entropy().sum(dim=-1).mean()
         ratio = torch.exp(new_log_probs - log_probs)
@@ -125,14 +131,14 @@ class PPOAgent(RLAgent):
         surr2 = torch.clamp(ratio, 1.0 - self.clip_epsilon, 1.0 + self.clip_epsilon) * advantages
         policy_loss = -torch.min(surr1, surr2).mean() - self.entropy_coef * entropy
 
-        # Объединяем потери и делаем один backward
+        # Общая потеря и backward
         total_loss = policy_loss + value_loss
 
         self.policy_optimizer.zero_grad()
         self.value_optimizer.zero_grad()
         total_loss.backward()
 
-        # Вычисляем нормы градиентов
+        # Нормы градиентов
         policy_grad_norm = sum(p.grad.data.norm(2).item() ** 2 for p in self.policy_net.parameters() if p.grad is not None) ** 0.5
         value_grad_norm = sum(p.grad.data.norm(2).item() ** 2 for p in self.value_net.parameters() if p.grad is not None) ** 0.5
 
@@ -145,8 +151,8 @@ class PPOAgent(RLAgent):
             'value_grad_norm': value_grad_norm,
             'advantages_mean': advantages.mean().item(),
             'advantages_std': advantages.std().item(),
-            'action_distribution_mean': mean.mean().item(),
-            'action_distribution_std': mean.std().item()
+            'action_distribution_mean': probs.mean().item(),
+            'action_distribution_std': probs.std().item()
         }
         
         return policy_loss.item(), value_loss.item(), diagnostics
