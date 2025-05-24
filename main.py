@@ -8,6 +8,7 @@ from utilities.video_logger import VideoLogger
 from utilities.yaml_reader import YAMLParser, constants
 from utilities.create_game import create_connquest_env
 from utilities.vec_env import SubprocVecEnv
+import sys
 
 import warnings
 import os
@@ -25,6 +26,8 @@ def print_debug_message(message, color="cyan"):
     print(f"\n{colored(line.center(80), color)}")
     print(colored(message.center(80), color))
     print(f"{colored(line.center(80), color)}\n")
+
+
 
 def print_parameters_table(parameters: dict):
     print("\n" + colored("=" * 60, "yellow"))
@@ -238,16 +241,31 @@ def main():
     except Exception as e:
         print_debug_message(f"Ошибка создания Trainer: {e}", "red")
         return
-
+    def signal_handler(sig, frame):
+        print("\n[MAIN] Получен сигнал прерывания. Завершаю работу...")
+        try:
+            trainer.env.close()  # закрыть векторную среду
+            torch.cuda.empty_cache()  # очистить CUDA
+            print("[MAIN] Среда и память GPU очищены.")
+        except Exception:
+            pass
+        sys.exit(0)
     print_debug_message("Старт обучения...", "yellow")
+    signal.signal(signal.SIGINT, signal_handler)
     try:
         trainer.run(total_steps=learning_steps, validate_every_split=validate_fold, batch_size=batch_size)
         print_debug_message("Обучение завершено.", "green")
     except Exception as e:
-         trainer.save_model(weights)
-         print_debug_message(f"Ошибка обучения: {e}", "red")
-    torch.cuda.empty_cache()
-    return
+        trainer.save_model(weights)
+        print_debug_message(f"Ошибка обучения: {e}", "red")
+    finally:
+        # Гарантируем очистку
+        try:
+            trainer.env.close()
+        except Exception:
+            pass
+        torch.cuda.empty_cache()
+    return  
 
 if __name__ == "__main__":
     main()
