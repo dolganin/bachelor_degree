@@ -79,7 +79,7 @@ class PPOAgent(RLAgent):
             action = dist.sample()
             action_log_prob = dist.log_prob(action).sum(dim=-1)
         self.policy_net.train()
-        return action.cpu().numpy()[0], action_log_prob.cpu().item()
+        return action.cpu().numpy()[0], action_log_prob.cpu()
 
 
     
