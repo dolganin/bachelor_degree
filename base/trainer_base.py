@@ -45,13 +45,7 @@ class TrainerRL(ABC):
             batch_states = [preprocess(o, resolution=self.resolution) for o in obs]
             actions, _ = zip(*[self.agent.get_action(s) for s in batch_states])
 
-            if self.actions:
-                selected = []
-                for a in actions:
-                    idx = int(torch.argmax(torch.tensor(a)).item())
-                    selected.append(self.actions[idx])
-            else:
-                selected = actions
+            selected = list(actions)  # Просто берем действия из агента без преобразований
 
             obs, step_rewards, dones, infos = self.env.step(selected)
 
@@ -82,8 +76,6 @@ class TrainerRL(ABC):
         print(f"[EVAL] Валидация завершена. Средняя награда: {avg:.2f}, std: {std:.2f}")
         self.avaluator.evaluate_and_save(self, avg, std)
         return test_scores
-
-
 
     @abstractmethod
     def save_model(self, filepath: str):

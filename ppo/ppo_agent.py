@@ -85,9 +85,10 @@ class PPOAgent(RLAgent):
 
     
     def train_agent(self, states: torch.Tensor, actions: torch.Tensor, rewards: torch.Tensor, 
-                    next_states: torch.Tensor, log_probs: torch.Tensor, dones: torch.Tensor):
+                    next_states: torch.Tensor, log_probs: torch.Tensor, dones: torch.Tensor, 
+                    gamma: float = None, lam: float = 0.95):
         """
-        Выполняет PPO-обновление на переданном батче данных.
+        Выполняет PPO-обновление с GAE.
 
         Args:
             states (torch.Tensor): Тензор состояний (batch_size, ...).
@@ -96,11 +97,14 @@ class PPOAgent(RLAgent):
             next_states (torch.Tensor): Тензор следующих состояний (batch_size, ...).
             log_probs (torch.Tensor): Тензор логарифмов вероятностей (batch_size,).
             dones (torch.Tensor): Тензор флагов завершения эпизода (batch_size,).
+            gamma (float): Дисконтирующий фактор (если None — используется self.discount_factor).
+            lam (float): Параметр GAE.
 
         Returns:
             tuple: (policy_loss, value_loss, diagnostics)
         """
-        # Перенос данных на устройство
+        gamma = gamma if gamma is not None else self.discount_factor
+
         states = states.to(self.device)
         actions = actions.to(self.device)
         next_states = next_states.to(self.device)
@@ -108,22 +112,24 @@ class PPOAgent(RLAgent):
         log_probs = log_probs.to(self.device)
         dones = dones.to(self.device)
 
-        # Значения и returns через Value Network
         values = self.value_net(states).squeeze()
         next_values = self.value_net(next_states).squeeze()
-        returns = rewards + self.discount_factor * next_values * (1 - dones.float())
-        advantages = returns - values
+
+        deltas = rewards + gamma * next_values * (1 - dones.float()) - values
+        advantages = torch.zeros_like(rewards).to(self.device)
+        advantage = 0.0
+        for t in reversed(range(len(rewards))):
+            advantage = deltas[t] + gamma * lam * (1 - dones[t]) * advantage
+            advantages[t] = advantage
+        returns = advantages + values
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        # Обновление Value Network
         value_loss = F.smooth_l1_loss(values, returns)
-        
-        # Обновление Policy Network
-        logits = self.policy_net(states)
+
+        logits = self.policy_net(states)  # если policy_net возвращает (mean, std), иначе просто logits
         probs = torch.sigmoid(logits)
         dist = Bernoulli(probs)
 
-        # Убедимся, что actions бинарные и имеют форму (batch, action_size)
         if actions.dim() == 1:
             actions = actions.unsqueeze(-1).expand_as(probs)
 
@@ -134,14 +140,12 @@ class PPOAgent(RLAgent):
         surr2 = torch.clamp(ratio, 1.0 - self.clip_epsilon, 1.0 + self.clip_epsilon) * advantages
         policy_loss = -torch.min(surr1, surr2).mean() - self.entropy_coef * entropy
 
-        # Общая потеря и backward
         total_loss = policy_loss + value_loss
 
         self.policy_optimizer.zero_grad()
         self.value_optimizer.zero_grad()
         total_loss.backward()
 
-        # Нормы градиентов
         policy_grad_norm = sum(p.grad.data.norm(2).item() ** 2 for p in self.policy_net.parameters() if p.grad is not None) ** 0.5
         value_grad_norm = sum(p.grad.data.norm(2).item() ** 2 for p in self.value_net.parameters() if p.grad is not None) ** 0.5
 
@@ -157,8 +161,9 @@ class PPOAgent(RLAgent):
             'action_distribution_mean': probs.mean().item(),
             'action_distribution_std': probs.std().item()
         }
-        
+
         return policy_loss.item(), value_loss.item(), diagnostics
+
 
 
     def append_memory(self, state, action, reward, next_state, done):
