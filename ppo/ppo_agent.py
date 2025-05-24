@@ -73,13 +73,15 @@ class PPOAgent(RLAgent):
         state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         self.policy_net.eval()
         with torch.no_grad():
-            logits = self.policy_net(state)  # (1, action_size)
-            probs = torch.sigmoid(logits)
-            dist = Bernoulli(probs)
+            mean, std = self.policy_net(state)  # shape (1, action_dim)
+            std = torch.clamp(std, min=1e-6, max=1.0)
+            dist = torch.distributions.Normal(mean, std)
             action = dist.sample()
             action_log_prob = dist.log_prob(action).sum(dim=-1)
         self.policy_net.train()
-        return action.cpu().numpy()[0], action_log_prob.cpu()
+        return action.cpu().numpy()[0], action_log_prob.cpu().item()
+
+
     
     def train_agent(self, states: torch.Tensor, actions: torch.Tensor, rewards: torch.Tensor, 
                     next_states: torch.Tensor, log_probs: torch.Tensor, dones: torch.Tensor):
