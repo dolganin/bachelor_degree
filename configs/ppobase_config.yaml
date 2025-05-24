@@ -3,7 +3,7 @@ learning_parameters:
   learning_rate_value: 0.0001               # Скорость обучения модели
   discount_factor: 0.95              # Коэффициент дисконтирования будущих наград
   learning_steps: 5000000
-  validate_fold: 5                  # Количество эпох для обучения
+  validate_fold: 1000                  # Количество эпох для обучения
   batch_size: 128                    # Размер батча для оптимизатора
   test_episodes_per_epoch: 60        # Количество эпизодов для тестирования на каждой эпохе
   frame_repeat: 96                   # Количество кадров, повторяемых для каждого действия
@@ -30,4 +30,4 @@ ppo_parameters:
 env_parameters:
   resolution: [120, 130]             # Размер экрана (высота и ширина)
   fps: 20                            # Число кадров в секунду
-  num_envs: 8
+  num_envs: 2

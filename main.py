@@ -227,7 +227,7 @@ def main():
             video_logger=vlogger,
             agent_evaluator=evaluator,
             model_savefile=weights,
-            ppo_epochs=epoch
+            ppo_epochs=epoch,
             n_envs=num_envs
         )
         print_debug_message("Trainer успешно инициализирован.", "green")

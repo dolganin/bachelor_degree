@@ -8,6 +8,7 @@ from server_consumer.broker_kafka import publish_data
 from utilities.video_logger import VideoLogger
 from base.agent_evaluator import AgentEvaluator
 from collections import deque
+from tqdm import tqdm
 
 class PPOTrainer(TrainerRL):
     def __init__(self, env, agent: Module, video_logger: VideoLogger=None, wandb_logger=None,  
@@ -30,7 +31,6 @@ class PPOTrainer(TrainerRL):
         self.n_envs = n_envs
 
     def train(self, total_steps: int, batch_size: int = 64):
-        # Для скользящего окна средней награды за 100 эпизодов
         recent_episode_rewards = deque(maxlen=100)
 
         loss_dict = {}
@@ -38,21 +38,17 @@ class PPOTrainer(TrainerRL):
         total_reward = 0.0
         step = 0
 
-        # Буфер rollout-а
         trajectories = {
             'states': [], 'actions': [], 'rewards': [],
             'log_probs': [], 'next_states': [], 'dones': []
         }
 
-        # Собираем rollout
+        pbar = tqdm(total=total_steps, desc="Collecting Rollout", unit="step")
         while step < total_steps:
-            # предобработка состояний
             batch_states = [preprocess(o, resolution=self.resolution) for o in obs]
-            # получаем батч действий и их лог-вероятности
             out = [self.agent.get_action(s) for s in batch_states]
             actions, logps = zip(*out)
 
-            # приводим индексы к списку команд
             selected = []
             for a in actions:
                 if self.actions:
@@ -61,10 +57,8 @@ class PPOTrainer(TrainerRL):
                 else:
                     selected.append(a)
 
-            # делаем шаг во всех средах
             next_obs, rewards, dones, infos = self.env.step(selected)
 
-            # сохраняем переходы и считаем эпизодические награды
             for i in range(self.n_envs):
                 trajectories['states'].append(batch_states[i])
                 trajectories['actions'].append(actions[i])
@@ -80,20 +74,19 @@ class PPOTrainer(TrainerRL):
 
                 total_reward += rewards[i]
 
-                # если эпизод закончился — логируем его награду
                 if dones[i]:
                     ep_reward = infos[i].get('episode_reward', None)
-                    # если в info нет, можно считать сумму последних trajectories['rewards'] или делать reset в env
                     recent_episode_rewards.append(ep_reward)
-                    # логируем скользящую среднюю
                     if len(recent_episode_rewards) == 100:
                         avg100 = sum(recent_episode_rewards) / 100.0
                         self.wandb_logger.log({'AvgRewardLast100': avg100})
 
             obs = next_obs
             step += self.n_envs
+            pbar.update(self.n_envs)
 
-        # конвертация rollout-буфера в тензоры
+        pbar.close()
+
         S  = torch.FloatTensor(np.array(trajectories['states']))
         A  = torch.tensor(np.array(trajectories['actions']))
         R  = torch.FloatTensor(np.array(trajectories['rewards']))
@@ -101,9 +94,8 @@ class PPOTrainer(TrainerRL):
         D  = torch.FloatTensor(np.array(trajectories['dones']))
         LP = torch.cat(trajectories['log_probs'])
 
-        # PPO-эпохи
         idxs = np.arange(S.size(0))
-        for _ in range(self.ppo_epochs):
+        for epoch in range(self.ppo_epochs):
             np.random.shuffle(idxs)
             for start in range(0, len(idxs), batch_size):
                 mb = idxs[start:start+batch_size]
@@ -116,9 +108,9 @@ class PPOTrainer(TrainerRL):
                 loss_dict.setdefault('value_loss', []).append(v_loss)
                 self.wandb_logger.log({
                     'Train policy loss': p_loss,
-                    'Train value loss':   v_loss,
-                    'Policy Entropy':     diag.get('entropy', 0.0),
-                    'Advantages Mean':    diag.get('advantages_mean', 0.0)
+                    'Train value loss': v_loss,
+                    'Policy Entropy': diag.get('entropy', 0.0),
+                    'Advantages Mean': diag.get('advantages_mean', 0.0)
                 })
 
         return total_reward, loss_dict

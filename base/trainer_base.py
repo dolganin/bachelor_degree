@@ -139,42 +139,41 @@ class TrainerRL(ABC):
         steps_completed = 0
         epoch = 0
 
-        with trange(total_steps, desc="Training", unit="step", bar_format='{l_bar}{bar:20}{r_bar}{bar:-20b}') as pbar:
-            while steps_completed < total_steps:
-                train_steps = min(steps_per_val, total_steps - steps_completed)
+        while steps_completed < total_steps:
+            print(f"[RUN] Эпоха {epoch+1} — старт обучения на {steps_per_val} шагов...")
 
-                # Обучение
-                reward, loss_lst = self.train(total_steps=steps_per_val, batch_size=batch_size)
-                self.total_rewards.append(reward)
+            reward, loss_lst = self.train(total_steps=steps_per_val, batch_size=batch_size)
+            self.total_rewards.append(reward)
 
-                policy_loss = np.array(loss_lst["policy_loss"]).mean()
-                value_loss = np.array(loss_lst["value_loss"]).mean()
-                mean_loss = (policy_loss + value_loss) / 2
+            policy_loss = np.array(loss_lst["policy_loss"]).mean()
+            value_loss = np.array(loss_lst["value_loss"]).mean()
+            mean_loss = (policy_loss + value_loss) / 2
 
-                # Валидация
-                print(Fore.YELLOW + "\nValidating..." + Style.RESET_ALL)
-                test_scores = self.evaluate()
-                avg_reward = test_scores.mean()
-                std_reward = test_scores.std()
+            print(f"[RUN] Эпоха {epoch+1} — обучение завершено, запускается валидация...")
 
-                self.log_metrics(
-                    epoch=epoch,
-                    mean_reward=avg_reward,
-                    std_reward=std_reward,
-                    policy_loss=policy_loss,
-                    value_loss=value_loss,
-                    mean_loss=mean_loss
-                )
+            test_scores = self.evaluate()
+            avg_reward = test_scores.mean()
+            std_reward = test_scores.std()
 
-                # Обновление и сохранение лучшего
-                self.avaluator.evaluate_and_save(
-                    trainer=self,
-                    mean_reward=avg_reward,
-                    std_reward=std_reward
-                )
+            self.log_metrics(
+                epoch=epoch,
+                mean_reward=avg_reward,
+                std_reward=std_reward,
+                policy_loss=policy_loss,
+                value_loss=value_loss,
+                mean_loss=mean_loss
+            )
 
-                steps_completed += train_steps
-                pbar.update(train_steps)
-                epoch += 1
+            self.avaluator.evaluate_and_save(
+                trainer=self,
+                mean_reward=avg_reward,
+                std_reward=std_reward
+            )
+
+            print(f"[RUN] Эпоха {epoch+1} завершена. Прогресс: {steps_completed + steps_per_val}/{total_steps} шагов.")
+            steps_completed += steps_per_val
+            epoch += 1
 
         self.env.close()
+        print("[RUN] Обучение завершено. Среда закрыта.")
+
