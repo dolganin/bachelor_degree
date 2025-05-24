@@ -218,7 +218,7 @@ def main():
     try:
         trainer = PPOTrainer(
             agent=agent,
-            env=env,
+            env=envs,
             wandb_logger=wandb,
             device=DEVICE,
             resolution=resolution,
