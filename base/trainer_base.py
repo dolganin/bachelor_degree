@@ -34,11 +34,12 @@ class TrainerRL(ABC):
         """
         pass
     def evaluate(self, log_video: bool = False, send_frames: bool = False) -> np.ndarray:
+        print("[EVAL] Начало валидации агента...")
         test_scores = []
         obs = self.env.reset()
         n_envs = self.env.n_envs
         rewards = [0.0 for _ in range(n_envs)]
-        active = [True] * n_envs  # отслеживаем, какие среды ещё не завершили эпизод
+        active = [True] * n_envs
 
         while any(active):
             batch_states = [preprocess(o, resolution=self.resolution) for o in obs]
@@ -71,12 +72,17 @@ class TrainerRL(ABC):
                                         mean_reward=0.0, mode="Test")
 
                     if dones[i]:
+                        print(f"[EVAL] Среда {i}: эпизод завершён, награда = {rewards[i]:.2f}")
                         test_scores.append(rewards[i])
                         active[i] = False
 
         test_scores = np.array(test_scores)
-        self.avaluator.evaluate_and_save(self, test_scores.mean(), test_scores.std())
+        avg = test_scores.mean()
+        std = test_scores.std()
+        print(f"[EVAL] Валидация завершена. Средняя награда: {avg:.2f}, std: {std:.2f}")
+        self.avaluator.evaluate_and_save(self, avg, std)
         return test_scores
+
 
 
     @abstractmethod
