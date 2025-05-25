@@ -49,30 +49,35 @@ class TrainerRL(ABC):
         env = create_connquest_env("coNNquest/configs/conquest.yaml")
     
         obs = env.get_state().screen_buffer
+        if obs is None:
+            print("[EVAL] obs = None сразу после инициализации — аварийный выход")
+            env.close()
+            return np.array([])
+    
         done, ep_return = False, 0.0
         rewards = []
     
         pbar = trange(max_step, desc="[EVAL] Шаги", unit="step", leave=True)
     
         for step in pbar:
-            if done:
+            if done or obs is None:
+                print(f"[EVAL] obs = None или done=True на шаге {step} — выход")
                 break
     
-            # --- подготовка состояния и действие агента ---
             state = preprocess(obs, resolution=self.resolution)
             action, _ = self.agent.get_action(state)
     
-            # ConNquestEnv не векторизован → отдаём plain-action
             obs, reward, done, info = env.step(action)
+            if obs is None:
+                print(f"[EVAL] obs = None после шага {step} — выход")
+                break
     
             ep_return += reward
             rewards.append(reward)
     
-            # --- (опционально) логируем картинку ---
-            if log_video or send_frames:
+            if (log_video or send_frames) and obs is not None:
                 frame = np.asarray(obs, dtype=np.uint8)
     
-                # (C, H, W) → (H, W, C)   и  BGR → RGB
                 if frame.ndim == 3:
                     if frame.shape[0] == 3:
                         frame = frame.transpose(1, 2, 0)
@@ -97,8 +102,9 @@ class TrainerRL(ABC):
                                          float(rewards.mean()),
                                          float(rewards.std()))
     
-        env.close()                       # не держим ресурсы зря
+        env.close()
         return np.asarray([ep_return], dtype=np.float32)
+
 
         
     @abstractmethod

@@ -58,7 +58,6 @@ class PPOTrainer(TrainerRL):
                 trajectories['states'].append(batch_states[i])
                 trajectories['actions'].append(actions[i])
                 trajectories['rewards'].append(rewards[i])
-                print(rewards[i])
                 trajectories['log_probs'].append(logps[i])
 
                 if not dones[i]:

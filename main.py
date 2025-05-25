@@ -18,6 +18,7 @@ from torch.cuda import is_available
 from datetime import datetime
 import signal
 import wandb
+import traceback
 
 init(autoreset=True)
 
@@ -257,7 +258,7 @@ def main():
         print_debug_message("Обучение завершено.", "green")
     except Exception as e:
         trainer.save_model(weights)
-        print_debug_message(f"Ошибка обучения: {e}", "red")
+        print_debug_message("Ошибка обучения:\n" + traceback.format_exc(), "red")
     finally:
         # Гарантируем очистку
         try:
