@@ -15,10 +15,6 @@ class AgentEvaluator:
             self.best_score = mean_reward
             trainer.save_model(trainer.model_savefile)
             print(f"Сохранена новая лучшая модель — Средняя награда: {mean_reward:.2f}, Отклонение: {std_reward:.2f}")
-            if trainer.video_logger:
-                trainer.video_logger.save()
-                print("Видео сохранено.")
-        else:
-            if trainer.video_logger:
-                trainer.video_logger.clear()
-                print("Видео очищено.")
+        if trainer.video_logger:
+            trainer.video_logger.save()
+            print("Видео сохранено.")

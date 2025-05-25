@@ -10,6 +10,11 @@ import cv2
 from torch import argmax, Tensor
 from colorama import Fore, Style
 from tqdm import trange
+import random
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from utilities.create_game import create_connquest_env
 
 
 class TrainerRL(ABC):
@@ -34,17 +39,17 @@ class TrainerRL(ABC):
             num_episodes: Количество эпизодов для обучения.
         """
         pass
-    def evaluate(self, log_video: bool = True, send_frames: bool = False, max_step: int = 300) -> np.ndarray:
-        print("[EVAL] Валидация агента в среде 0...")
     
-        # Полный сброс карты и статистик
-        self.env.reset_waves()              # сбросить wave = 1
-        obs = self.env.reset()              # сбрасывает карту, убивает врагов, чистит статистику
-        self.env.spawn_wave()              # запускаем первую волну
-        self.env.spawn_wave()
+    def evaluate(self,
+                 log_video: bool = True,
+                 send_frames: bool = False,
+                 max_step: int = 300,
+                 seed: int | None = None) -> np.ndarray:
+        print("[EVAL] Запускаю совершенно новую среду…")
+        env = create_connquest_env("coNNquest/configs/conquest.yaml")
     
-        reward = 0.0
-        done = False
+        obs = env.get_state().screen_buffer
+        done, ep_return = False, 0.0
         rewards = []
     
         pbar = trange(max_step, desc="[EVAL] Шаги", unit="step", leave=True)
@@ -53,46 +58,48 @@ class TrainerRL(ABC):
             if done:
                 break
     
-            state = preprocess(obs[0], resolution=self.resolution)
+            # --- подготовка состояния и действие агента ---
+            state = preprocess(obs, resolution=self.resolution)
             action, _ = self.agent.get_action(state)
     
-            obs, step_rewards, dones, infos = self.env.step(
-                [action.tolist()] + [[0] * self.agent.action_size] * (self.env.n_envs - 1)
-            )
+            # ConNquestEnv не векторизован → отдаём plain-action
+            obs, reward, done, info = env.step(action)
     
-            step_reward = float(step_rewards[0])
-            reward += step_reward
-            rewards.append(step_reward)
+            ep_return += reward
+            rewards.append(reward)
     
+            # --- (опционально) логируем картинку ---
             if log_video or send_frames:
-                frame = np.array(obs[0], dtype=np.uint8)
+                frame = np.asarray(obs, dtype=np.uint8)
     
-                if frame.ndim == 3 and frame.shape[0] == 3:
-                    frame = np.transpose(frame, (1, 2, 0))  # (C, H, W) → (H, W, C)
-                if frame.shape[-1] == 3:
-                    frame = frame[..., ::-1]  # BGR → RGB
+                # (C, H, W) → (H, W, C)   и  BGR → RGB
+                if frame.ndim == 3:
+                    if frame.shape[0] == 3:
+                        frame = frame.transpose(1, 2, 0)
+                    frame = frame[..., ::-1]
     
                 frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_LINEAR)
     
                 if log_video:
                     self.video_logger.add_frame(frame)
                 if send_frames:
-                    publish_data(
-                        array=frame,
-                        epoch="Validation",
-                        loss=float("NaN"),
-                        mean_reward=0.0,
-                        mode="Test"
-                    )
-    
-            done = dones[0]
+                    publish_data(array=frame,
+                                 epoch="Validation",
+                                 loss=float("nan"),
+                                 mean_reward=0.0,
+                                 mode="Test")
     
         pbar.close()
-        rewards = np.array(rewards)
+        rewards = np.asarray(rewards, dtype=np.float32)
     
-        print(f"[EVAL] Эпизод завершён. Награда: {np.mean(rewards):.2f}")
-        self.avaluator.evaluate_and_save(self, np.mean(rewards), np.std(rewards))
-        return np.array([reward])
+        print(f"[EVAL] Эпизод завершён: mean {rewards.mean():.2f}  ± {rewards.std():.2f}")
+        self.avaluator.evaluate_and_save(self,
+                                         float(rewards.mean()),
+                                         float(rewards.std()))
+    
+        env.close()                       # не держим ресурсы зря
+        return np.asarray([ep_return], dtype=np.float32)
+
         
     @abstractmethod
     def save_model(self, filepath: str):
